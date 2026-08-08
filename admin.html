@@ -1,0 +1,640 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة - معدّاتي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+--primary: #6C3FC5;
+--primary-dark: #4e2d9a;
+--primary-light: #8B5CF6;
+--accent: #F59E0B;
+--accent2: #EF4444;
+--bg: #f8f7fc;
+--white: #ffffff;
+--text: #1a1a2e;
+--text-light: #6b7280;
+--card-bg: #f0ebff;
+--green: #10b981;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+font-family: 'Cairo', sans-serif;
+background: var(--bg);
+color: var(--text);
+direction: rtl;
+min-height: 100vh;
+}
+/* ===== شاشة تسجيل الدخول ===== */
+#loginScreen {
+position: fixed;
+inset: 0;
+background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 9999;
+}
+.login-box {
+background: white;
+border-radius: 20px;
+padding: 2.5rem 2rem;
+width: 100%;
+max-width: 340px;
+text-align: center;
+box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+.login-box .lock-icon { font-size: 2.5rem; margin-bottom: .5rem; display:block; }
+.login-box h2 {
+font-family: 'Tajawal', sans-serif;
+font-weight: 900;
+color: var(--primary);
+margin-bottom: 1.5rem;
+font-size: 1.2rem;
+}
+.login-box input {
+width: 100%;
+padding: .8rem 1rem;
+border: 2px solid #e5e7eb;
+border-radius: 12px;
+font-family: 'Cairo', sans-serif;
+font-size: 1rem;
+text-align: center;
+letter-spacing: 3px;
+margin-bottom: 1rem;
+direction: ltr;
+}
+.login-box input:focus { outline: none; border-color: var(--primary-light); }
+.login-box button {
+width: 100%;
+background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+color: white;
+border: none;
+border-radius: 14px;
+padding: .8rem;
+font-family: 'Cairo', sans-serif;
+font-weight: 700;
+font-size: .95rem;
+cursor: pointer;
+}
+.login-error {
+color: var(--accent2);
+font-size: .82rem;
+font-weight: 700;
+margin-bottom: .8rem;
+display: none;
+}
+#adminContent { display: none; }
+/* HEADER */
+header {
+background: linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%);
+padding: 1.2rem 2rem;
+display: flex;
+align-items: center;
+justify-content: space-between;
+box-shadow: 0 4px 20px rgba(108,63,197,0.3);
+}
+.header-logo {
+font-family: 'Tajawal', sans-serif;
+font-weight: 900;
+font-size: 1.5rem;
+color: white;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+.header-badge {
+background: rgba(255,255,255,0.2);
+color: #fde68a;
+padding: 0.3rem 0.8rem;
+border-radius: 20px;
+font-size: 0.8rem;
+font-weight: 700;
+}
+.header-right { display:flex; align-items:center; gap:.6rem; }
+.btn-goto-site {
+background: white;
+color: var(--primary);
+border: none;
+border-radius: 25px;
+padding: 0.5rem 1.3rem;
+font-family: 'Cairo', sans-serif;
+font-weight: 700;
+font-size: 0.88rem;
+cursor: pointer;
+transition: all 0.2s;
+text-decoration: none;
+display: inline-block;
+}
+.btn-goto-site:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.btn-icon-only {
+background: rgba(255,255,255,0.15);
+color: white;
+border: none;
+border-radius: 50%;
+width: 38px;
+height: 38px;
+font-size: 1.1rem;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all .2s;
+}
+.btn-icon-only:hover { background: rgba(255,255,255,0.28); }
+/* MAIN LAYOUT */
+.admin-layout {
+max-width: 1200px;
+margin: 2rem auto;
+padding: 0 2rem;
+display: grid;
+grid-template-columns: 420px 1fr;
+gap: 2rem;
+}
+/* FORM CARD */
+.form-card {
+background: white;
+border-radius: 20px;
+padding: 2rem;
+box-shadow: 0 4px 20px rgba(108,63,197,0.1);
+height: fit-content;
+position: sticky;
+top: 1rem;
+}
+.form-card h2 {
+font-family: 'Tajawal', sans-serif;
+font-size: 1.3rem;
+font-weight: 900;
+color: var(--primary);
+margin-bottom: 1.5rem;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+.form-group {
+margin-bottom: 1.2rem;
+}
+label {
+display: block;
+font-weight: 700;
+font-size: 0.88rem;
+color: var(--text);
+margin-bottom: 0.4rem;
+}
+label span { color: var(--accent2); }
+input[type="text"],
+input[type="number"],
+select {
+width: 100%;
+padding: 0.7rem 1rem;
+border: 2px solid #e5e7eb;
+border-radius: 12px;
+font-family: 'Cairo', sans-serif;
+font-size: 0.9rem;
+color: var(--text);
+transition: border-color 0.2s;
+background: var(--bg);
+direction: rtl;
+}
+input:focus, select:focus {
+outline: none;
+border-color: var(--primary-light);
+background: white;
+}
+/* IMAGE UPLOAD */
+.img-upload-area {
+border: 2px dashed #c4b5fd;
+border-radius: 14px;
+padding: 1.5rem;
+text-align: center;
+cursor: pointer;
+transition: all 0.3s;
+background: #faf8ff;
+position: relative;
+}
+.img-upload-area:hover { border-color: var(--primary); background: #f0ebff; }
+.img-upload-area input[type="file"] {
+position: absolute;
+inset: 0;
+opacity: 0;
+cursor: pointer;
+width: 100%;
+height: 100%;
+}
+.img-upload-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+.img-upload-text { font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
+.img-upload-sub { font-size: 0.75rem; color: #9ca3af; margin-top: 0.3rem; }
+.img-preview {
+width: 100%;
+height: 140px;
+object-fit: cover;
+border-radius: 10px;
+display: none;
+margin-top: 0.8rem;
+}
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.btn-submit {
+width: 100%;
+background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+color: white;
+border: none;
+border-radius: 14px;
+padding: 0.9rem;
+font-family: 'Cairo', sans-serif;
+font-weight: 700;
+font-size: 1rem;
+cursor: pointer;
+transition: all 0.25s;
+margin-top: 0.5rem;
+box-shadow: 0 4px 16px rgba(108,63,197,0.3);
+}
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,63,197,0.4); }
+/* SUCCESS MESSAGE */
+.success-msg {
+display: none;
+background: #d1fae5;
+color: #065f46;
+border-radius: 10px;
+padding: 0.8rem 1rem;
+font-weight: 700;
+font-size: 0.88rem;
+margin-top: 1rem;
+text-align: center;
+}
+/* PRODUCTS LIST */
+.products-panel h2 {
+font-family: 'Tajawal', sans-serif;
+font-size: 1.3rem;
+font-weight: 900;
+color: var(--text);
+margin-bottom: 1.2rem;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+.products-count {
+background: var(--primary);
+color: white;
+border-radius: 20px;
+padding: 0.2rem 0.8rem;
+font-size: 0.85rem;
+font-weight: 700;
+}
+.btn-clear-all {
+background: #fee2e2;
+color: var(--accent2);
+border: none;
+border-radius: 20px;
+padding: 0.4rem 1rem;
+font-family: 'Cairo', sans-serif;
+font-size: 0.82rem;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.2s;
+}
+.btn-clear-all:hover { background: var(--accent2); color: white; }
+.empty-state {
+text-align: center;
+padding: 3rem;
+color: var(--text-light);
+}
+.empty-state-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
+.empty-state p { font-size: 0.9rem; }
+/* ADMIN PRODUCT CARD */
+.admin-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 1rem;
+}
+.admin-product-card {
+background: white;
+border-radius: 16px;
+overflow: hidden;
+box-shadow: 0 2px 12px rgba(108,63,197,0.08);
+transition: all 0.3s;
+position: relative;
+}
+.admin-product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(108,63,197,0.15); }
+.admin-product-img {
+height: 130px;
+background: var(--card-bg);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 3rem;
+overflow: hidden;
+}
+.admin-product-img img { width: 100%; height: 100%; object-fit: cover; }
+.admin-product-info { padding: 0.8rem; }
+.admin-product-name { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.2rem; }
+.admin-product-price { color: var(--primary); font-weight: 900; font-family: 'Tajawal', sans-serif; font-size: 1rem; }
+.btn-delete {
+position: absolute;
+top: 8px; left: 8px;
+background: rgba(239,68,68,0.9);
+color: white;
+border: none;
+border-radius: 50%;
+width: 30px; height: 30px;
+font-size: 0.9rem;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.2s;
+}
+.btn-delete:hover { background: var(--accent2); transform: scale(1.1); }
+@media (max-width: 900px) {
+.admin-layout { grid-template-columns: 1fr; }
+.form-card { position: static; }
+.admin-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+.admin-grid { grid-template-columns: 1fr; }
+.row-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<!-- ===== شاشة الدخول ===== -->
+<div id="loginScreen">
+<div class="login-box">
+<span class="lock-icon">🔒</span>
+<h2>أدخل رمز الدخول للوحة الإدارة</h2>
+<div class="login-error" id="loginError">رمز غير صحيح، حاول مرة ثانية</div>
+<input type="password" id="loginCode" placeholder="••••" maxlength="20" inputmode="numeric">
+<button onclick="tryLogin()">دخول</button>
+</div>
+</div>
+<div id="adminContent">
+<header>
+<div class="header-logo">
+🔧 معدّاتي
+<span class="header-badge">لوحة الإدارة</span>
+</div>
+<div class="header-right">
+<button class="btn-icon-only" title="تغيير رمز الدخول" onclick="changeCode()">⚙️</button>
+<a href="index.html" class="btn-goto-site">← عرض الموقع</a>
+</div>
+</header>
+<div class="admin-layout">
+<!-- فورم الإضافة -->
+<div class="form-card">
+<h2>➕ إضافة منتج جديد</h2>
+<div class="form-group">
+<label>اسم المنتج <span>*</span></label>
+<input type="text" id="prodName" placeholder="مثال: مطرقة ثقيلة">
+</div>
+<div class="form-group">
+<label>الماركة / الشركة</label>
+<input type="text" id="prodBrand" placeholder="مثال: Bosch">
+</div>
+<div class="row-2">
+<div class="form-group">
+<label>السعر (د.ع) <span>*</span></label>
+<input type="number" id="prodPrice" placeholder="5000">
+</div>
+<div class="form-group">
+<label>السعر القديم (اختياري)</label>
+<input type="number" id="prodOldPrice" placeholder="7000">
+</div>
+</div>
+<div class="row-2">
+<div class="form-group">
+<label>التقييم (اختياري)</label>
+<input type="number" id="prodRating" placeholder="4.8" min="0" max="5" step="0.1">
+</div>
+<div class="form-group">
+<label>الشارة (اختياري)</label>
+<input type="text" id="prodBadge" placeholder="جديد / الأكثر طلباً">
+</div>
+</div>
+<div class="form-group">
+<label>صورة المنتج</label>
+<div class="img-upload-area" id="uploadArea">
+<input type="file" id="prodImage" accept="image/*" onchange="previewImage(event)">
+<span class="img-upload-icon">🖼️</span>
+<div class="img-upload-text">اضغط لرفع صورة</div>
+<div class="img-upload-sub">PNG, JPG, WEBP</div>
+</div>
+<img id="imgPreview" class="img-preview" alt="معاينة">
+</div>
+<button class="btn-submit" onclick="addProduct()">✅ إضافة المنتج</button>
+<div class="success-msg" id="successMsg">✅ تم إضافة المنتج بنجاح!</div>
+</div>
+<!-- قائمة المنتجات -->
+<div class="products-panel">
+<h2>
+<span>المنتجات المضافة <span class="products-count" id="countBadge">0</span></span>
+<button class="btn-clear-all" onclick="clearAll()">🗑️ حذف الكل</button>
+</h2>
+<div id="productsList">
+<div class="empty-state">
+<span class="empty-state-icon">📦</span>
+<p>ما في منتجات بعد<br>أضف أول منتج من الفورم</p>
+</div>
+</div>
+</div>
+</div>
+<!-- قسم الطلبات -->
+<div style="max-width:1200px;margin:0 auto 3rem;padding:0 2rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+<h2 style="font-family:'Tajawal',sans-serif;font-size:1.3rem;font-weight:900;display:flex;align-items:center;gap:.6rem;">
+📋 سجل الطلبات الكامل
+<span id="ordersCountBadge" style="background:var(--primary);color:white;border-radius:20px;padding:.2rem .8rem;font-size:.85rem;font-weight:700;">0</span>
+</h2>
+<a href="cashier.html" style="background:var(--primary);color:white;border-radius:12px;padding:.5rem 1.2rem;text-decoration:none;font-weight:700;font-size:.85rem;">⚡ فتح الكاشير</a>
+</div>
+<div id="ordersList">
+<div class="empty-state"><span class="empty-state-icon">📋</span><p>ما في طلبات بعد</p></div>
+</div>
+</div>
+</div><!-- /#adminContent -->
+<script>
+/* ===================== نظام الدخول ===================== */
+const DEFAULT_CODE = '1234'; // الرمز الافتراضي أول مرة، غيّره من زر الترس ⚙️ داخل اللوحة
+function getStoredCode() {
+return localStorage.getItem('muaddati_admin_code') || DEFAULT_CODE;
+}
+function tryLogin() {
+const input = document.getElementById('loginCode').value.trim();
+const err = document.getElementById('loginError');
+if (input === getStoredCode()) {
+sessionStorage.setItem('muaddati_admin_logged', '1');
+document.getElementById('loginScreen').style.display = 'none';
+document.getElementById('adminContent').style.display = 'block';
+} else {
+err.style.display = 'block';
+document.getElementById('loginCode').value = '';
+document.getElementById('loginCode').focus();
+}
+}
+document.getElementById('loginCode').addEventListener('keydown', function(e) {
+if (e.key === 'Enter') tryLogin();
+});
+function changeCode() {
+const current = prompt('أدخل الرمز الحالي للتأكيد:');
+if (current === null) return;
+if (current !== getStoredCode()) {
+alert('الرمز الحالي غير صحيح.');
+return;
+}
+const newCode = prompt('أدخل الرمز الجديد:');
+if (!newCode || !newCode.trim()) return;
+localStorage.setItem('muaddati_admin_code', newCode.trim());
+alert('تم تغيير رمز الدخول بنجاح ✅');
+}
+// إذا مسجل دخول بنفس الجلسة، افتح اللوحة مباشرة
+if (sessionStorage.getItem('muaddati_admin_logged') === '1') {
+document.getElementById('loginScreen').style.display = 'none';
+document.getElementById('adminContent').style.display = 'block';
+}
+/* ===================== باقي اللوحة (كما هي) ===================== */
+let currentImageBase64 = '';
+function previewImage(e) {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(ev) {
+currentImageBase64 = ev.target.result;
+const preview = document.getElementById('imgPreview');
+preview.src = currentImageBase64;
+preview.style.display = 'block';
+};
+reader.readAsDataURL(file);
+}
+function getProducts() {
+return JSON.parse(localStorage.getItem('muaddati_products') || '[]');
+}
+function saveProducts(products) {
+localStorage.setItem('muaddati_products', JSON.stringify(products));
+}
+function addProduct() {
+const name = document.getElementById('prodName').value.trim();
+const price = document.getElementById('prodPrice').value.trim();
+if (!name || !price) {
+alert('يرجى كتابة اسم المنتج والسعر على الأقل!');
+return;
+}
+const product = {
+id: Date.now(),
+name,
+brand: document.getElementById('prodBrand').value.trim(),
+price,
+oldPrice: document.getElementById('prodOldPrice').value.trim(),
+rating: document.getElementById('prodRating').value.trim(),
+badge: document.getElementById('prodBadge').value.trim(),
+image: currentImageBase64
+};
+const products = getProducts();
+products.push(product);
+saveProducts(products);
+// إعادة تعيين الفورم
+document.getElementById('prodName').value = '';
+document.getElementById('prodBrand').value = '';
+document.getElementById('prodPrice').value = '';
+document.getElementById('prodOldPrice').value = '';
+document.getElementById('prodRating').value = '';
+document.getElementById('prodBadge').value = '';
+document.getElementById('prodImage').value = '';
+document.getElementById('imgPreview').style.display = 'none';
+currentImageBase64 = '';
+// رسالة نجاح
+const msg = document.getElementById('successMsg');
+msg.style.display = 'block';
+setTimeout(() => msg.style.display = 'none', 3000);
+renderProducts();
+}
+function deleteProduct(id) {
+let products = getProducts();
+products = products.filter(p => p.id !== id);
+saveProducts(products);
+renderProducts();
+}
+function clearAll() {
+if (confirm('تريد تحذف كل المنتجات؟')) {
+localStorage.removeItem('muaddati_products');
+renderProducts();
+}
+}
+function renderProducts() {
+const products = getProducts();
+const list = document.getElementById('productsList');
+const count = document.getElementById('countBadge');
+count.textContent = products.length;
+if (products.length === 0) {
+list.innerHTML = `
+<div class="empty-state">
+<span class="empty-state-icon">📦</span>
+<p>ما في منتجات بعد<br>أضف أول منتج من الفورم</p>
+</div>`;
+return;
+}
+list.innerHTML = `<div class="admin-grid">${products.map(p => `
+<div class="admin-product-card">
+<button class="btn-delete" onclick="deleteProduct(${p.id})">✕</button>
+<div class="admin-product-img">
+${p.image ? `<img src="${p.image}" alt="${p.name}">` : '🔧'}
+</div>
+<div class="admin-product-info">
+<div class="admin-product-name">${p.name}</div>
+${p.brand ? `<div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.3rem;">${p.brand}</div>` : ''}
+<div class="admin-product-price">
+${p.oldPrice ? `<span style="text-decoration:line-through;font-size:0.78rem;color:#9ca3af;margin-left:4px;">${p.oldPrice}</span>` : ''}
+${p.price} د.ع
+</div>
+${p.badge ? `<span style="background:#fee2e2;color:#dc2626;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:8px;display:inline-block;margin-top:4px;">${p.badge}</span>` : ''}
+</div>
+</div>
+`).join('')}</div>`;
+}
+// تحميل المنتجات عند الفتح
+renderProducts();
+// ===== الطلبات =====
+function getOrders() {
+return JSON.parse(localStorage.getItem('muaddati_orders') || '[]');
+}
+function renderOrders() {
+const orders = getOrders();
+const list = document.getElementById('ordersList');
+const count = document.getElementById('ordersCountBadge');
+count.textContent = orders.length;
+const statusLabel = { new:'🔵 جديد', preparing:'🟠 قيد التحضير', delivered:'🟢 تم التوصيل', ready:'🟢 جاهز' };
+const statusColor = { new:'#3b82f6', preparing:'#f97316', delivered:'#10b981', ready:'#10b981' };
+if (orders.length === 0) {
+list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📋</span><p>ما في طلبات بعد</p></div>';
+return;
+}
+list.innerHTML = [...orders].reverse().map(o => `
+<div style="background:white;border-radius:14px;padding:1rem 1.2rem;margin-bottom:.8rem;box-shadow:0 2px 10px rgba(108,63,197,.07);border-right:4px solid ${statusColor[o.status] || '#6C3FC5'};">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+<strong style="color:var(--primary);font-family:'Tajawal',sans-serif;">${o.id}</strong>
+<span style="background:${statusColor[o.status] || '#6C3FC5'}22;color:${statusColor[o.status] || '#6C3FC5'};padding:.2rem .7rem;border-radius:20px;font-size:.78rem;font-weight:700;">
+${statusLabel[o.status] || o.status}
+</span>
+</div>
+${o.customer ? `
+<div style="font-size:.82rem;color:var(--text-light);margin-bottom:.5rem;">
+👤 ${o.customer.name} &nbsp;|&nbsp; 📞 ${o.customer.phone} &nbsp;|&nbsp; 📍 ${o.customer.address}
+</div>` : ''}
+<div style="font-size:.82rem;margin-bottom:.5rem;">
+${o.items.map(i => `<span style="background:#f0ebff;color:var(--primary);border-radius:8px;padding:.1rem .5rem;margin-left:.3rem;font-size:.78rem;">${i.name} x${i.qty}</span>`).join('')}
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:.3rem;">
+<span style="font-size:.75rem;color:var(--text-light);">🕐 ${o.time || ''}</span>
+<strong style="color:var(--primary);font-family:'Tajawal',sans-serif;">${o.total.toLocaleString()} د.ع</strong>
+</div>
+${o.archivedFromCashier ? '<div style="font-size:.72rem;color:#ef4444;margin-top:.3rem;">⚠️ محذوف من الكاشير - محفوظ هنا</div>' : ''}
+</div>
+`).join('');
+}
+renderOrders();
+window.addEventListener('storage', function(e) {
+if (e.key === 'muaddati_orders') renderOrders();
+});
+</script>
+</body>
+</html>
