@@ -350,10 +350,12 @@ transition: all 0.2s;
 .admin-layout { grid-template-columns: 1fr; }
 .form-card { position: static; }
 .admin-grid { grid-template-columns: repeat(2, 1fr); }
+#reportsGrid { grid-template-columns: repeat(2, 1fr) !important; }
 }
 @media (max-width: 500px) {
 .admin-grid { grid-template-columns: 1fr; }
 .row-2 { grid-template-columns: 1fr; }
+#reportsGrid { grid-template-columns: 1fr !important; }
 }
 </style>
 </head>
@@ -381,6 +383,30 @@ transition: all 0.2s;
 <a href="index.html" class="btn-goto-site">← عرض الموقع</a>
 </div>
 </header>
+<div style="max-width:1200px;margin:1.5rem auto 0;padding:0 2rem;">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;" id="reportsGrid">
+<div style="background:white;border-radius:16px;padding:1.2rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
+<div style="font-size:.78rem;color:var(--text-light);margin-bottom:.4rem;">📅 مبيعات اليوم</div>
+<div style="font-family:'Tajawal',sans-serif;font-weight:900;font-size:1.3rem;color:var(--primary);" id="reportTodayTotal">0 د.ع</div>
+<div style="font-size:.72rem;color:var(--text-light);" id="reportTodayCount">0 طلب</div>
+</div>
+<div style="background:white;border-radius:16px;padding:1.2rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
+<div style="font-size:.78rem;color:var(--text-light);margin-bottom:.4rem;">🗓️ مبيعات الأسبوع</div>
+<div style="font-family:'Tajawal',sans-serif;font-weight:900;font-size:1.3rem;color:var(--primary);" id="reportWeekTotal">0 د.ع</div>
+<div style="font-size:.72rem;color:var(--text-light);" id="reportWeekCount">0 طلب</div>
+</div>
+<div style="background:white;border-radius:16px;padding:1.2rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
+<div style="font-size:.78rem;color:var(--text-light);margin-bottom:.4rem;">📆 مبيعات الشهر</div>
+<div style="font-family:'Tajawal',sans-serif;font-weight:900;font-size:1.3rem;color:var(--primary);" id="reportMonthTotal">0 د.ع</div>
+<div style="font-size:.72rem;color:var(--text-light);" id="reportMonthCount">0 طلب</div>
+</div>
+<div style="background:white;border-radius:16px;padding:1.2rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
+<div style="font-size:.78rem;color:var(--text-light);margin-bottom:.4rem;">📊 متوسط قيمة الطلب</div>
+<div style="font-family:'Tajawal',sans-serif;font-weight:900;font-size:1.3rem;color:var(--primary);" id="reportAvgOrder">0 د.ع</div>
+<div style="font-size:.72rem;color:var(--text-light);">(آخر 30 يوم)</div>
+</div>
+</div>
+</div>
 <div class="admin-layout">
 <!-- فورم الإضافة -->
 <div class="form-card">
@@ -741,7 +767,32 @@ db.ref('orders').on('value', snap => {
 ordersCache = snap.val() || {};
 renderOrders();
 renderCustomers();
+renderReports();
 });
+
+/* ===================== التقارير ===================== */
+function renderReports() {
+const orders = getOrders().filter(o => !o.archivedFromCashier && o.status !== 'cancelled');
+const now = Date.now();
+const dayMs = 24*60*60*1000;
+const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+const weekAgo = now - 7*dayMs;
+const monthAgo = now - 30*dayMs;
+
+const todayOrders = orders.filter(o => (o.timestamp||0) >= startOfToday.getTime());
+const weekOrders = orders.filter(o => (o.timestamp||0) >= weekAgo);
+const monthOrders = orders.filter(o => (o.timestamp||0) >= monthAgo);
+
+const sum = arr => arr.reduce((s,o)=>s+(o.total||0),0);
+
+document.getElementById('reportTodayTotal').textContent = sum(todayOrders).toLocaleString() + ' د.ع';
+document.getElementById('reportTodayCount').textContent = todayOrders.length + ' طلب';
+document.getElementById('reportWeekTotal').textContent = sum(weekOrders).toLocaleString() + ' د.ع';
+document.getElementById('reportWeekCount').textContent = weekOrders.length + ' طلب';
+document.getElementById('reportMonthTotal').textContent = sum(monthOrders).toLocaleString() + ' د.ع';
+document.getElementById('reportMonthCount').textContent = monthOrders.length + ' طلب';
+document.getElementById('reportAvgOrder').textContent = (monthOrders.length ? Math.round(sum(monthOrders)/monthOrders.length) : 0).toLocaleString() + ' د.ع';
+}
 
 /* ===================== العملاء (مجمّعة من الطلبات) ===================== */
 function buildCustomersFromOrders() {
