@@ -489,7 +489,11 @@ function renderAdminProducts(productsObj) {
   const grid = document.getElementById('adminProductsGrid');
   const products = productsObj ? Object.values(productsObj) : [];
   if (products.length === 0) { grid.innerHTML=''; return; }
-  grid.innerHTML = products.map(p => `
+  const statusLabels = { rented:'🟠 مؤجرة حالياً', maintenance:'🔴 بالصيانة' };
+  grid.innerHTML = products.map(p => {
+    const status = p.status || 'available';
+    const isAvailable = status === 'available';
+    return `
     <div class="product-card">
       <div class="product-img" style="padding:0;">
         ${p.image?`<img src="${p.image}" alt="${p.name}">`:' <span>🔧</span>'}
@@ -500,11 +504,15 @@ function renderAdminProducts(productsObj) {
         <div class="product-brand">${p.brand||''}</div>
         <div class="product-footer">
           <div class="product-price">${p.oldPrice?`<span class="old-price">${p.oldPrice} د.ع</span>`:''} ${Number(p.price).toLocaleString()}</div>
-          <button class="btn-add" onclick="addToCart(this,'${p.name.replace(/'/g,"\\'")}',${p.price},'🔧','${p.image||''}')">+ أضف</button>
+          ${isAvailable
+            ? `<button class="btn-add" onclick="addToCart(this,'${p.name.replace(/'/g,"\\'")}',${p.price},'🔧','${p.image||''}')">+ أضف</button>`
+            : `<span style="background:#f3f4f6;color:#9ca3af;border-radius:20px;padding:.4rem 1rem;font-size:.8rem;font-weight:700;">${statusLabels[status]}</span>`
+          }
         </div>
         ${p.rating?`<div class="rating">⭐ ${p.rating}</div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // الاستماع اللحظي لأي تغيير بالمنتجات (سواء أضافه الأدمن من نفس الجهاز أو جهاز ثاني)
