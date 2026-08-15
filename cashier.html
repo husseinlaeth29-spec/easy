@@ -176,15 +176,23 @@
   </div>
 </div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
 <script>
-const STORAGE_KEY = 'muaddati_orders';
+// كاش محلي بالذاكرة فقط، يتحدث تلقائيًا من Firebase
+let ordersCache = {};
+let isFirstLoad = true;
+let previousNewCount = 0;
 
 function getOrders() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  return Object.values(ordersCache);
 }
 
-function saveOrders(orders) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+function updateOrder(id, changes) {
+  db.ref('orders/' + id).update(changes);
 }
 
 function timeAgo(timestamp) {
@@ -203,29 +211,17 @@ function showNotif(msg, color) {
 }
 
 function moveToPrep(id) {
-  const orders = getOrders();
-  const o = orders.find(x => x.id === id);
-  if (o) { o.status = 'preparing'; o.prepTime = Date.now(); }
-  saveOrders(orders);
-  renderBoard();
+  updateOrder(id, { status: 'preparing', prepTime: Date.now() });
   showNotif('⚙️ الطلب ' + id + ' قيد التحضير', '#f97316');
 }
 
 function moveToDelivered(id) {
-  const orders = getOrders();
-  const o = orders.find(x => x.id === id);
-  if (o) { o.status = 'delivered'; o.doneTime = Date.now(); }
-  saveOrders(orders);
-  renderBoard();
+  updateOrder(id, { status: 'delivered', doneTime: Date.now() });
   showNotif('✅ الطلب ' + id + ' تم التوصيل!', '#10b981');
 }
 
 function deleteFromCashier(id) {
-  const orders = getOrders();
-  const o = orders.find(x => x.id === id);
-  if (o) { o.archivedFromCashier = true; }
-  saveOrders(orders);
-  renderBoard();
+  updateOrder(id, { archivedFromCashier: true });
   showNotif('🗑️ حُذف من الكاشير - محفوظ بالأدمن', '#EF4444');
 }
 
@@ -341,19 +337,21 @@ function renderBoard() {
     : '<div class="empty-col"><span class="empty-col-icon">✅</span>ما في طلبات مكتملة بعد</div>';
 }
 
-renderBoard();
+// الاستماع اللحظي لأي تغيير بالطلبات (يشتغل مع كل الأجهزة بنفس الوقت)
+db.ref('orders').on('value', snap => {
+  ordersCache = snap.val() || {};
 
-window.addEventListener('storage', function(e) {
-  if (e.key === STORAGE_KEY) {
-    const oldOrders = JSON.parse(e.oldValue || '[]');
-    const newOrders = JSON.parse(e.newValue || '[]');
-    const newCount = newOrders.filter(o => o.status === 'new').length;
-    const oldCount = oldOrders.filter(o => o.status === 'new').length;
-    if (newCount > oldCount) showNotif('🔔 طلب جديد وصل!', '#3b82f6');
-    renderBoard();
+  const newCount = Object.values(ordersCache).filter(o => o.status === 'new' && !o.archivedFromCashier).length;
+  if (!isFirstLoad && newCount > previousNewCount) {
+    showNotif('🔔 طلب جديد وصل!', '#3b82f6');
   }
+  previousNewCount = newCount;
+  isFirstLoad = false;
+
+  renderBoard();
 });
 
+// تحديث عداد "منذ متى" كل 30 ثانية بدون الحاجة لإعادة القراءة من Firebase
 setInterval(renderBoard, 30000);
 </script>
 </body>
