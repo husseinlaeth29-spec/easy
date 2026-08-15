@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -453,8 +452,15 @@ transition: all 0.2s;
 </div>
 </div>
 </div><!-- /#adminContent -->
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
 <script>
 /* ===================== نظام الدخول ===================== */
+/* رمز الدخول يبقى محفوظ محليًا بكل جهاز - هذا عادي وما يحتاج مزامنة */
 const DEFAULT_CODE = '1234'; // الرمز الافتراضي أول مرة، غيّره من زر الترس ⚙️ داخل اللوحة
 function getStoredCode() {
 return localStorage.getItem('muaddati_admin_code') || DEFAULT_CODE;
@@ -492,8 +498,10 @@ if (sessionStorage.getItem('muaddati_admin_logged') === '1') {
 document.getElementById('loginScreen').style.display = 'none';
 document.getElementById('adminContent').style.display = 'block';
 }
-/* ===================== باقي اللوحة (كما هي) ===================== */
+/* ===================== المنتجات (Firebase) ===================== */
 let currentImageBase64 = '';
+let productsCache = {};
+
 function previewImage(e) {
 const file = e.target.files[0];
 if (!file) return;
@@ -506,12 +514,11 @@ preview.style.display = 'block';
 };
 reader.readAsDataURL(file);
 }
+
 function getProducts() {
-return JSON.parse(localStorage.getItem('muaddati_products') || '[]');
+return Object.values(productsCache);
 }
-function saveProducts(products) {
-localStorage.setItem('muaddati_products', JSON.stringify(products));
-}
+
 function addProduct() {
 const name = document.getElementById('prodName').value.trim();
 const price = document.getElementById('prodPrice').value.trim();
@@ -529,9 +536,9 @@ rating: document.getElementById('prodRating').value.trim(),
 badge: document.getElementById('prodBadge').value.trim(),
 image: currentImageBase64
 };
-const products = getProducts();
-products.push(product);
-saveProducts(products);
+
+db.ref('products/' + product.id).set(product);
+
 // إعادة تعيين الفورم
 document.getElementById('prodName').value = '';
 document.getElementById('prodBrand').value = '';
@@ -542,24 +549,23 @@ document.getElementById('prodBadge').value = '';
 document.getElementById('prodImage').value = '';
 document.getElementById('imgPreview').style.display = 'none';
 currentImageBase64 = '';
+
 // رسالة نجاح
 const msg = document.getElementById('successMsg');
 msg.style.display = 'block';
 setTimeout(() => msg.style.display = 'none', 3000);
-renderProducts();
 }
+
 function deleteProduct(id) {
-let products = getProducts();
-products = products.filter(p => p.id !== id);
-saveProducts(products);
-renderProducts();
+db.ref('products/' + id).remove();
 }
+
 function clearAll() {
 if (confirm('تريد تحذف كل المنتجات؟')) {
-localStorage.removeItem('muaddati_products');
-renderProducts();
+db.ref('products').remove();
 }
 }
+
 function renderProducts() {
 const products = getProducts();
 const list = document.getElementById('productsList');
@@ -591,12 +597,20 @@ ${p.badge ? `<span style="background:#fee2e2;color:#dc2626;font-size:0.72rem;fon
 </div>
 `).join('')}</div>`;
 }
-// تحميل المنتجات عند الفتح
+
+// الاستماع اللحظي لأي تغيير بالمنتجات - يشتغل من أي جهاز
+db.ref('products').on('value', snap => {
+productsCache = snap.val() || {};
 renderProducts();
-// ===== الطلبات =====
+});
+
+/* ===================== الطلبات (Firebase) ===================== */
+let ordersCache = {};
+
 function getOrders() {
-return JSON.parse(localStorage.getItem('muaddati_orders') || '[]');
+return Object.values(ordersCache);
 }
+
 function renderOrders() {
 const orders = getOrders();
 const list = document.getElementById('ordersList');
@@ -631,9 +645,11 @@ ${o.archivedFromCashier ? '<div style="font-size:.72rem;color:#ef4444;margin-top
 </div>
 `).join('');
 }
+
+// الاستماع اللحظي لأي تغيير بالطلبات - يشتغل من أي جهاز
+db.ref('orders').on('value', snap => {
+ordersCache = snap.val() || {};
 renderOrders();
-window.addEventListener('storage', function(e) {
-if (e.key === 'muaddati_orders') renderOrders();
 });
 </script>
 </body>
