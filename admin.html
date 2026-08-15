@@ -377,6 +377,7 @@ transition: all 0.2s;
 <div class="header-right">
 <button class="btn-icon-only" title="تغيير رمز الأدمن" onclick="changeCode()">⚙️</button>
 <button class="btn-icon-only" title="تغيير رمز الكاشير" onclick="changeCashierCode()">🔑</button>
+<button class="btn-icon-only" title="رقم واتساب المحل" onclick="changeStoreWhatsapp()">💬</button>
 <a href="index.html" class="btn-goto-site">← عرض الموقع</a>
 </div>
 </header>
@@ -461,6 +462,19 @@ transition: all 0.2s;
 <div class="empty-state"><span class="empty-state-icon">📋</span><p>ما في طلبات بعد</p></div>
 </div>
 </div>
+<!-- قسم العملاء -->
+<div style="max-width:1200px;margin:0 auto 3rem;padding:0 2rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+<h2 style="font-family:'Tajawal',sans-serif;font-size:1.3rem;font-weight:900;display:flex;align-items:center;gap:.6rem;">
+👤 العملاء
+<span id="customersCountBadge" style="background:var(--primary);color:white;border-radius:20px;padding:.2rem .8rem;font-size:.85rem;font-weight:700;">0</span>
+</h2>
+</div>
+<input type="text" id="customerSearchInput" placeholder="🔍 بحث بالاسم أو الهاتف..." oninput="renderCustomers()" style="width:100%;max-width:420px;padding:.7rem 1.1rem;border-radius:12px;border:2px solid #e5e7eb;background:white;font-family:'Cairo',sans-serif;font-size:.9rem;margin-bottom:1.2rem;">
+<div id="customersList">
+<div class="empty-state"><span class="empty-state-icon">👤</span><p>ما في عملاء بعد</p></div>
+</div>
+</div>
 </div><!-- /#adminContent -->
 
 <!-- Firebase -->
@@ -517,6 +531,17 @@ const newCode = prompt('أدخل رمز الكاشير الجديد:');
 if (!newCode || !newCode.trim()) return;
 db.ref('settings/accessCodes/cashier').set(newCode.trim());
 alert('تم تغيير رمز الكاشير بنجاح ✅');
+}
+function changeStoreWhatsapp() {
+const newNumber = prompt('أدخل رقم واتساب المحل بالصيغة الدولية بدون + أو أصفار (مثال: 9647701234567):');
+if (newNumber === null) return;
+const cleaned = newNumber.trim().replace(/[^0-9]/g, '');
+db.ref('settings/storeWhatsapp').set(cleaned);
+if (cleaned) {
+alert('تم حفظ رقم واتساب المحل ✅ - الزبائن راح يشوفون زر المتابعة بعد كل طلب');
+} else {
+alert('تم إلغاء رقم الواتساب - الزر ما راح يظهر للزبائن');
+}
 }
 // إذا مسجل دخول بنفس الجلسة، افتح اللوحة مباشرة
 if (sessionStorage.getItem('muaddati_admin_logged') === '1') {
@@ -715,7 +740,75 @@ ${o.archivedFromCashier ? '<div style="font-size:.72rem;color:#ef4444;margin-top
 db.ref('orders').on('value', snap => {
 ordersCache = snap.val() || {};
 renderOrders();
+renderCustomers();
 });
+
+/* ===================== العملاء (مجمّعة من الطلبات) ===================== */
+function buildCustomersFromOrders() {
+const orders = getOrders().filter(o => !o.archivedFromCashier && o.customer && o.customer.phone);
+const map = {};
+orders.forEach(o => {
+const phone = o.customer.phone.trim();
+if (!map[phone]) {
+map[phone] = { phone, name: o.customer.name, address: o.customer.address, orders: [], total: 0 };
+}
+map[phone].orders.push(o);
+map[phone].total += (o.total || 0);
+map[phone].name = o.customer.name || map[phone].name; // آخر اسم مستخدم
+});
+return Object.values(map).sort((a,b) => b.total - a.total);
+}
+
+function customerLevel(count) {
+if (count >= 15) return { label: 'VIP 👑', color: '#a855f7' };
+if (count >= 8) return { label: 'ذهبي 🥇', color: '#f59e0b' };
+if (count >= 3) return { label: 'فضي 🥈', color: '#94a3b8' };
+return { label: 'عادي', color: '#6b7280' };
+}
+
+function matchesCustomerSearch(c, query) {
+if (!query) return true;
+const q = query.trim().toLowerCase();
+if (!q) return true;
+return (c.name||'').toLowerCase().includes(q) || (c.phone||'').toLowerCase().includes(q);
+}
+
+function renderCustomers() {
+const searchEl = document.getElementById('customerSearchInput');
+const query = searchEl ? searchEl.value : '';
+const allCustomers = buildCustomersFromOrders();
+const customers = allCustomers.filter(c => matchesCustomerSearch(c, query));
+const list = document.getElementById('customersList');
+const count = document.getElementById('customersCountBadge');
+if (count) count.textContent = allCustomers.length;
+
+if (customers.length === 0) {
+list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">👤</span><p>ما في عملاء مطابقين</p></div>';
+return;
+}
+
+list.innerHTML = `<div class="admin-grid">${customers.map(c => {
+const level = customerLevel(c.orders.length);
+const lastOrder = [...c.orders].sort((a,b) => (b.timestamp||0)-(a.timestamp||0))[0];
+return `
+<div class="admin-product-card" style="padding:1rem;">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+<div>
+<div class="admin-product-name">${c.name || 'بدون اسم'}</div>
+<div style="font-size:.78rem;color:var(--text-light);">📞 ${c.phone}</div>
+</div>
+<span style="background:${level.color}22;color:${level.color};padding:.2rem .7rem;border-radius:20px;font-size:.72rem;font-weight:700;">${level.label}</span>
+</div>
+${c.address ? `<div style="font-size:.78rem;color:var(--text-light);margin-bottom:.4rem;">📍 ${c.address}</div>` : ''}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed #e5e7eb;">
+<span style="font-size:.78rem;color:var(--text-light);">${c.orders.length} طلب</span>
+<strong style="color:var(--primary);font-family:'Tajawal',sans-serif;">${c.total.toLocaleString()} د.ع</strong>
+</div>
+${lastOrder ? `<div style="font-size:.72rem;color:var(--text-light);margin-top:.3rem;">🕐 آخر طلب: ${lastOrder.time || ''}</div>` : ''}
+</div>
+`;
+}).join('')}</div>`;
+}
 </script>
 </body>
 </html>
