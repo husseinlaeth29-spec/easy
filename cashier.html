@@ -24,6 +24,31 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Cairo',sans-serif; background:var(--bg); color:var(--text); direction:rtl; min-height:100vh; }
 
+  #loginScreen {
+    position:fixed; inset:0; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+  }
+  .login-box {
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    padding:2.5rem 2rem; width:100%; max-width:340px; text-align:center;
+    box-shadow:0 10px 40px rgba(0,0,0,.4);
+  }
+  .login-box .lock-icon { font-size:2.5rem; margin-bottom:.5rem; display:block; }
+  .login-box h2 { font-family:'Tajawal',sans-serif; font-weight:900; color:var(--primary-light); margin-bottom:1.5rem; font-size:1.15rem; }
+  .login-box input {
+    width:100%; padding:.8rem 1rem; border:2px solid var(--border); border-radius:12px;
+    font-family:'Cairo',sans-serif; font-size:1rem; text-align:center; letter-spacing:3px;
+    margin-bottom:1rem; direction:ltr; background:var(--bg); color:var(--text);
+  }
+  .login-box input:focus { outline:none; border-color:var(--primary-light); }
+  .login-box button {
+    width:100%; background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
+    color:white; border:none; border-radius:14px; padding:.8rem; font-family:'Cairo',sans-serif;
+    font-weight:700; font-size:.95rem; cursor:pointer;
+  }
+  .login-error { color:var(--accent2); font-size:.82rem; font-weight:700; margin-bottom:.8rem; display:none; }
+  #cashierContent { display:none; }
+
   header {
     background:var(--card);
     border-bottom:1px solid var(--border);
@@ -45,7 +70,8 @@
   .hstat-num { font-family:'Tajawal',sans-serif; font-weight:900; font-size:1.1rem; color:var(--primary-light); display:block; }
   .hstat-label { font-size:.7rem; color:var(--text-light); }
 
-  .board { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; padding:1.5rem; min-height:calc(100vh - 65px); }
+  .board { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; padding:1.5rem; min-height:calc(100vh - 65px); }
+  @media(max-width:1300px) { .board { grid-template-columns:repeat(2,1fr); } }
 
   .column { background:var(--card); border-radius:16px; border:1px solid var(--border); display:flex; flex-direction:column; max-height:calc(100vh - 100px); }
   .col-header { padding:1rem 1.2rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; border-radius:16px 16px 0 0; flex-shrink:0; }
@@ -92,6 +118,15 @@
   .btn-deliver:hover { background:var(--green); color:white; }
   .btn-delete-order { background:rgba(239,68,68,.1); color:var(--accent2); border:1px solid rgba(239,68,68,.2); border-radius:10px; padding:.35rem .6rem; font-size:.75rem; cursor:pointer; transition:all .2s; }
   .btn-delete-order:hover { background:var(--accent2); color:white; }
+  .btn-cancel { background:rgba(239,68,68,.15); color:var(--accent2); border:1px solid rgba(239,68,68,.3); }
+  .btn-cancel:hover { background:var(--accent2); color:white; }
+  .btn-return { background:rgba(148,163,184,.15); color:#94a3b8; border:1px solid rgba(148,163,184,.3); }
+  .btn-return:hover { background:#94a3b8; color:white; }
+
+  .search-bar { padding:0 1.5rem 1rem; }
+  .search-input { width:100%; max-width:420px; padding:.7rem 1.1rem; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); font-family:'Cairo',sans-serif; font-size:.9rem; }
+  .search-input::placeholder { color:var(--text-light); }
+  .search-input:focus { outline:none; border-color:var(--primary-light); }
 
   .empty-col { text-align:center; padding:2rem 1rem; color:var(--text-light); font-size:.85rem; }
   .empty-col-icon { font-size:2rem; display:block; margin-bottom:.5rem; opacity:.4; }
@@ -117,6 +152,7 @@
   .status-new { background:rgba(59,130,246,.15); color:var(--blue); }
   .status-prep { background:rgba(249,115,22,.15); color:var(--orange); }
   .status-done { background:rgba(16,185,129,.15); color:var(--green); }
+  .status-cancel { background:rgba(148,163,184,.15); color:#94a3b8; }
 
   .nav-links-bottom { display:flex; gap:.5rem; padding:0 1.5rem 1rem; }
   .nav-link-btn { background:rgba(108,63,197,.15); color:var(--primary-light); border:1px solid var(--border); border-radius:10px; padding:.4rem .9rem; font-family:'Cairo',sans-serif; font-size:.8rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; }
@@ -127,6 +163,17 @@
 </head>
 <body>
 
+<div id="loginScreen">
+  <div class="login-box">
+    <span class="lock-icon">🔒</span>
+    <h2>أدخل رمز دخول الكاشير</h2>
+    <div class="login-error" id="loginError">رمز غير صحيح، حاول مرة ثانية</div>
+    <input type="password" id="loginCode" placeholder="••••" maxlength="20" inputmode="numeric">
+    <button onclick="tryLogin()">دخول</button>
+  </div>
+</div>
+
+<div id="cashierContent">
 <div class="notif" id="notif"></div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
@@ -152,6 +199,10 @@
   </div>
 </header>
 
+<div class="search-bar">
+  <input type="text" class="search-input" id="searchInput" placeholder="🔍 بحث برقم الطلب، الاسم، أو الهاتف..." oninput="renderBoard()">
+</div>
+
 <div class="board">
   <div class="column">
     <div class="col-header col-header-new">
@@ -174,7 +225,15 @@
     </div>
     <div class="col-body" id="colDone"><div class="empty-col"><span class="empty-col-icon">✅</span>ما في طلبات مكتملة بعد</div></div>
   </div>
+  <div class="column">
+    <div class="col-header" style="background:rgba(148,163,184,.1);">
+      <div class="col-title"><span class="col-dot" style="background:#94a3b8;"></span>ملغي / مرتجع</div>
+      <span class="col-count" style="background:rgba(148,163,184,.2);color:#94a3b8;" id="countCancelled">0</span>
+    </div>
+    <div class="col-body" id="colCancelled"><div class="empty-col"><span class="empty-col-icon">🗂️</span>ما في طلبات ملغية</div></div>
+  </div>
 </div>
+</div><!-- /#cashierContent -->
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -182,6 +241,35 @@
 <script src="firebase-config.js"></script>
 
 <script>
+/* ===================== نظام الدخول (رمز الكاشير من Firebase) ===================== */
+const DEFAULT_CASHIER_CODE = '1234';
+let currentCashierCode = DEFAULT_CASHIER_CODE;
+
+db.ref('settings/accessCodes/cashier').on('value', snap => {
+  currentCashierCode = snap.val() || DEFAULT_CASHIER_CODE;
+});
+
+function tryLogin() {
+  const input = document.getElementById('loginCode').value.trim();
+  const err = document.getElementById('loginError');
+  if (input === currentCashierCode) {
+    sessionStorage.setItem('muaddati_cashier_logged', '1');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('cashierContent').style.display = 'block';
+  } else {
+    err.style.display = 'block';
+    document.getElementById('loginCode').value = '';
+    document.getElementById('loginCode').focus();
+  }
+}
+document.getElementById('loginCode').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') tryLogin();
+});
+if (sessionStorage.getItem('muaddati_cashier_logged') === '1') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('cashierContent').style.display = 'block';
+}
+
 // كاش محلي بالذاكرة فقط، يتحدث تلقائيًا من Firebase
 let ordersCache = {};
 let isFirstLoad = true;
@@ -225,6 +313,18 @@ function deleteFromCashier(id) {
   showNotif('🗑️ حُذف من الكاشير - محفوظ بالأدمن', '#EF4444');
 }
 
+function cancelOrder(id) {
+  if (!confirm('تريد إلغاء هذا الطلب؟')) return;
+  updateOrder(id, { status: 'cancelled', cancelTime: Date.now() });
+  showNotif('❌ تم إلغاء الطلب ' + id, '#EF4444');
+}
+
+function returnOrder(id) {
+  if (!confirm('تريد تسجيل هذا الطلب كمرتجع؟')) return;
+  updateOrder(id, { status: 'returned', returnTime: Date.now() });
+  showNotif('↩️ تم تسجيل الطلب ' + id + ' كمرتجع', '#94a3b8');
+}
+
 function openModal(id) {
   const orders = getOrders();
   const o = orders.find(x => x.id === id);
@@ -232,8 +332,8 @@ function openModal(id) {
 
   document.getElementById('modalTitle').textContent = 'تفاصيل الطلب ' + o.id;
 
-  const statusLabel = { new:'جديد', preparing:'قيد التحضير', delivered:'تم التوصيل', ready:'جاهز' };
-  const statusClass = { new:'status-new', preparing:'status-prep', delivered:'status-done', ready:'status-done' };
+  const statusLabel = { new:'جديد', preparing:'قيد التحضير', delivered:'تم التوصيل', ready:'جاهز', cancelled:'ملغي', returned:'مرتجع' };
+  const statusClass = { new:'status-new', preparing:'status-prep', delivered:'status-done', ready:'status-done', cancelled:'status-cancel', returned:'status-cancel' };
 
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-section-title">معلومات الطلب</div>
@@ -275,11 +375,16 @@ function closeModalDirect() {
 }
 
 function buildOrderCard(o, col) {
-  const btns = col === 'new'
-    ? `<button class="btn-action btn-prepare" onclick="event.stopPropagation();moveToPrep('${o.id}')">⚙️ جهّز</button>`
-    : col === 'prep'
-    ? `<button class="btn-action btn-deliver" onclick="event.stopPropagation();moveToDelivered('${o.id}')">✅ وصّل</button>`
-    : '';
+  let btns = '';
+  if (col === 'new') {
+    btns = `<button class="btn-action btn-prepare" onclick="event.stopPropagation();moveToPrep('${o.id}')">⚙️ جهّز</button>
+            <button class="btn-action btn-cancel" onclick="event.stopPropagation();cancelOrder('${o.id}')">❌ إلغاء</button>`;
+  } else if (col === 'prep') {
+    btns = `<button class="btn-action btn-deliver" onclick="event.stopPropagation();moveToDelivered('${o.id}')">✅ وصّل</button>
+            <button class="btn-action btn-cancel" onclick="event.stopPropagation();cancelOrder('${o.id}')">❌ إلغاء</button>`;
+  } else if (col === 'done') {
+    btns = `<button class="btn-action btn-return" onclick="event.stopPropagation();returnOrder('${o.id}')">↩️ إرجاع</button>`;
+  }
 
   return `
     <div class="order-card" onclick="openModal('${o.id}')">
@@ -309,17 +414,30 @@ function buildOrderCard(o, col) {
   `;
 }
 
+function matchesSearch(o, query) {
+  if (!query) return true;
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const id = (o.id || '').toLowerCase();
+  const name = (o.customer && o.customer.name || '').toLowerCase();
+  const phone = (o.customer && o.customer.phone || '').toLowerCase();
+  return id.includes(q) || name.includes(q) || phone.includes(q);
+}
+
 function renderBoard() {
   const allOrders = getOrders();
-  const orders = allOrders.filter(o => !o.archivedFromCashier);
+  const query = (document.getElementById('searchInput') || {}).value || '';
+  const orders = allOrders.filter(o => !o.archivedFromCashier && matchesSearch(o, query));
 
   const newOrders  = orders.filter(o => o.status === 'new');
   const prepOrders = orders.filter(o => o.status === 'preparing' || o.status === 'ready');
   const doneOrders = orders.filter(o => o.status === 'delivered');
+  const cancelledOrders = orders.filter(o => o.status === 'cancelled' || o.status === 'returned');
 
   document.getElementById('countNew').textContent  = newOrders.length;
   document.getElementById('countPrep').textContent = prepOrders.length;
   document.getElementById('countDone').textContent = doneOrders.length;
+  document.getElementById('countCancelled').textContent = cancelledOrders.length;
   document.getElementById('statNew').textContent   = newOrders.length;
   document.getElementById('statPrep').textContent  = prepOrders.length;
   document.getElementById('statDone').textContent  = doneOrders.length;
@@ -335,6 +453,10 @@ function renderBoard() {
   document.getElementById('colDone').innerHTML = doneOrders.length
     ? [...doneOrders].reverse().map(o => buildOrderCard(o, 'done')).join('')
     : '<div class="empty-col"><span class="empty-col-icon">✅</span>ما في طلبات مكتملة بعد</div>';
+
+  document.getElementById('colCancelled').innerHTML = cancelledOrders.length
+    ? [...cancelledOrders].reverse().map(o => buildOrderCard(o, 'cancelled')).join('')
+    : '<div class="empty-col"><span class="empty-col-icon">🗂️</span>ما في طلبات ملغية</div>';
 }
 
 // الاستماع اللحظي لأي تغيير بالطلبات (يشتغل مع كل الأجهزة بنفس الوقت)
