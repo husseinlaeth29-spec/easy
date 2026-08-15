@@ -157,6 +157,8 @@
   .modal .order-id { background:var(--card-bg); color:var(--primary); font-weight:900; font-family:'Tajawal',sans-serif; font-size:1.2rem; padding:.5rem 1.5rem; border-radius:12px; display:inline-block; margin:.8rem 0; }
   .btn-modal-close { background:var(--primary); color:white; border:none; border-radius:14px; padding:.8rem 2rem; font-family:'Cairo',sans-serif; font-weight:700; font-size:.95rem; cursor:pointer; margin-top:1rem; transition:all .2s; }
   .btn-modal-close:hover { background:var(--primary-dark); }
+  #whatsappFollowLink.show { display:inline-flex !important; }
+  #whatsappFollowLink:hover { opacity:.9; }
 
   @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 
@@ -220,6 +222,9 @@
     <p>رقم طلبك:</p>
     <div class="order-id" id="modalOrderId">#000</div>
     <p>سيتم التواصل معك قريباً على رقم هاتفك</p>
+    <a id="whatsappFollowLink" href="#" target="_blank" style="display:none;background:#25D366;color:white;border:none;border-radius:14px;padding:.8rem 2rem;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;margin-top:.8rem;text-decoration:none;align-items:center;justify-content:center;gap:.5rem;">
+      💬 تابع طلبك عبر واتساب
+    </a>
     <button class="btn-modal-close" onclick="closeModal()">حسناً 👍</button>
   </div>
 </div>
@@ -434,6 +439,11 @@ function changeQty(idx,d) {
 function removeItem(idx) { cart.splice(idx,1); updateCartCount(); renderCart(); }
 function clearCart() { cart=[]; updateCartCount(); renderCart(); }
 
+let storeWhatsappNumber = '';
+db.ref('settings/storeWhatsapp').on('value', snap => {
+  storeWhatsappNumber = snap.val() || '';
+});
+
 function placeOrder() {
   const name    = document.getElementById('custName').value.trim();
   const phone   = document.getElementById('custPhone').value.trim();
@@ -466,6 +476,16 @@ function placeOrder() {
       document.getElementById('custPhone').value = '';
       document.getElementById('custAddress').value = '';
       document.getElementById('custNotes').value = '';
+
+      // رابط متابعة واتساب (يظهر فقط إذا الأدمن ضاف رقم المحل)
+      const waLink = document.getElementById('whatsappFollowLink');
+      if (storeWhatsappNumber) {
+        const msg = encodeURIComponent('مرحباً، أريد متابعة طلبي رقم ' + orderId + ' - الاسم: ' + name);
+        waLink.href = 'https://wa.me/' + storeWhatsappNumber + '?text=' + msg;
+        waLink.classList.add('show');
+      } else {
+        waLink.classList.remove('show');
+      }
 
       // نافذة النجاح
       document.getElementById('modalOrderId').textContent = orderId;
