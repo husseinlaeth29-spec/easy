@@ -375,7 +375,8 @@ transition: all 0.2s;
 <span class="header-badge">لوحة الإدارة</span>
 </div>
 <div class="header-right">
-<button class="btn-icon-only" title="تغيير رمز الدخول" onclick="changeCode()">⚙️</button>
+<button class="btn-icon-only" title="تغيير رمز الأدمن" onclick="changeCode()">⚙️</button>
+<button class="btn-icon-only" title="تغيير رمز الكاشير" onclick="changeCashierCode()">🔑</button>
 <a href="index.html" class="btn-goto-site">← عرض الموقع</a>
 </div>
 </header>
@@ -410,6 +411,14 @@ transition: all 0.2s;
 <label>الشارة (اختياري)</label>
 <input type="text" id="prodBadge" placeholder="جديد / الأكثر طلباً">
 </div>
+</div>
+<div class="form-group">
+<label>حالة المعدة</label>
+<select id="prodStatus">
+<option value="available">🟢 متاحة</option>
+<option value="rented">🟠 مؤجرة</option>
+<option value="maintenance">🔴 بالصيانة</option>
+</select>
 </div>
 <div class="form-group">
 <label>صورة المنتج</label>
@@ -447,6 +456,7 @@ transition: all 0.2s;
 </h2>
 <a href="cashier.html" style="background:var(--primary);color:white;border-radius:12px;padding:.5rem 1.2rem;text-decoration:none;font-weight:700;font-size:.85rem;">⚡ فتح الكاشير</a>
 </div>
+<input type="text" id="orderSearchInput" placeholder="🔍 بحث برقم الطلب، الاسم، أو الهاتف..." oninput="renderOrders()" style="width:100%;max-width:420px;padding:.7rem 1.1rem;border-radius:12px;border:2px solid #e5e7eb;background:white;font-family:'Cairo',sans-serif;font-size:.9rem;margin-bottom:1.2rem;">
 <div id="ordersList">
 <div class="empty-state"><span class="empty-state-icon">📋</span><p>ما في طلبات بعد</p></div>
 </div>
@@ -460,15 +470,18 @@ transition: all 0.2s;
 
 <script>
 /* ===================== نظام الدخول ===================== */
-/* رمز الدخول يبقى محفوظ محليًا بكل جهاز - هذا عادي وما يحتاج مزامنة */
-const DEFAULT_CODE = '1234'; // الرمز الافتراضي أول مرة، غيّره من زر الترس ⚙️ داخل اللوحة
-function getStoredCode() {
-return localStorage.getItem('muaddati_admin_code') || DEFAULT_CODE;
-}
+/* رمز الدخول محفوظ بـ Firebase عشان يشتغل نفسه من أي جهاز */
+const DEFAULT_ADMIN_CODE = '1234'; // الرمز الافتراضي أول مرة، غيّره من زر الترس ⚙️ داخل اللوحة
+let currentAdminCode = DEFAULT_ADMIN_CODE;
+
+db.ref('settings/accessCodes/admin').on('value', snap => {
+  currentAdminCode = snap.val() || DEFAULT_ADMIN_CODE;
+});
+
 function tryLogin() {
 const input = document.getElementById('loginCode').value.trim();
 const err = document.getElementById('loginError');
-if (input === getStoredCode()) {
+if (input === currentAdminCode) {
 sessionStorage.setItem('muaddati_admin_logged', '1');
 document.getElementById('loginScreen').style.display = 'none';
 document.getElementById('adminContent').style.display = 'block';
@@ -482,16 +495,28 @@ document.getElementById('loginCode').addEventListener('keydown', function(e) {
 if (e.key === 'Enter') tryLogin();
 });
 function changeCode() {
-const current = prompt('أدخل الرمز الحالي للتأكيد:');
+const current = prompt('أدخل رمز الأدمن الحالي للتأكيد:');
 if (current === null) return;
-if (current !== getStoredCode()) {
+if (current !== currentAdminCode) {
 alert('الرمز الحالي غير صحيح.');
 return;
 }
-const newCode = prompt('أدخل الرمز الجديد:');
+const newCode = prompt('أدخل رمز الأدمن الجديد:');
 if (!newCode || !newCode.trim()) return;
-localStorage.setItem('muaddati_admin_code', newCode.trim());
-alert('تم تغيير رمز الدخول بنجاح ✅');
+db.ref('settings/accessCodes/admin').set(newCode.trim());
+alert('تم تغيير رمز الأدمن بنجاح ✅ (يشتغل بكل الأجهزة)');
+}
+function changeCashierCode() {
+const current = prompt('أدخل رمز الأدمن الحالي للتأكيد:');
+if (current === null) return;
+if (current !== currentAdminCode) {
+alert('الرمز غير صحيح.');
+return;
+}
+const newCode = prompt('أدخل رمز الكاشير الجديد:');
+if (!newCode || !newCode.trim()) return;
+db.ref('settings/accessCodes/cashier').set(newCode.trim());
+alert('تم تغيير رمز الكاشير بنجاح ✅');
 }
 // إذا مسجل دخول بنفس الجلسة، افتح اللوحة مباشرة
 if (sessionStorage.getItem('muaddati_admin_logged') === '1') {
@@ -526,14 +551,24 @@ if (!name || !price) {
 alert('يرجى كتابة اسم المنتج والسعر على الأقل!');
 return;
 }
+const status = document.getElementById('prodStatus').value;
+const productId = Date.now();
+
+// توليد كود معدة تسلسلي (EQ-0001, EQ-0002...) عبر عداد محفوظ بـ Firebase
+db.ref('settings/equipmentCounter').transaction(current => (current || 0) + 1).then(result => {
+const seq = result.snapshot.val() || 1;
+const equipmentCode = 'EQ-' + String(seq).padStart(4, '0');
+
 const product = {
-id: Date.now(),
+id: productId,
+equipmentCode,
 name,
 brand: document.getElementById('prodBrand').value.trim(),
 price,
 oldPrice: document.getElementById('prodOldPrice').value.trim(),
 rating: document.getElementById('prodRating').value.trim(),
 badge: document.getElementById('prodBadge').value.trim(),
+status,
 image: currentImageBase64
 };
 
@@ -546,14 +581,21 @@ document.getElementById('prodPrice').value = '';
 document.getElementById('prodOldPrice').value = '';
 document.getElementById('prodRating').value = '';
 document.getElementById('prodBadge').value = '';
+document.getElementById('prodStatus').value = 'available';
 document.getElementById('prodImage').value = '';
 document.getElementById('imgPreview').style.display = 'none';
 currentImageBase64 = '';
 
 // رسالة نجاح
 const msg = document.getElementById('successMsg');
+msg.textContent = '✅ تم إضافة المعدة برقم ' + equipmentCode;
 msg.style.display = 'block';
 setTimeout(() => msg.style.display = 'none', 3000);
+});
+}
+
+function setProductStatus(id, status) {
+db.ref('products/' + id).update({ status });
 }
 
 function deleteProduct(id) {
@@ -579,13 +621,17 @@ list.innerHTML = `
 </div>`;
 return;
 }
-list.innerHTML = `<div class="admin-grid">${products.map(p => `
+list.innerHTML = `<div class="admin-grid">${products.map(p => {
+const statusLabels = { available:'🟢 متاحة', rented:'🟠 مؤجرة', maintenance:'🔴 بالصيانة' };
+const currentStatus = p.status || 'available';
+return `
 <div class="admin-product-card">
 <button class="btn-delete" onclick="deleteProduct(${p.id})">✕</button>
 <div class="admin-product-img">
 ${p.image ? `<img src="${p.image}" alt="${p.name}">` : '🔧'}
 </div>
 <div class="admin-product-info">
+${p.equipmentCode ? `<div style="font-size:0.7rem;color:var(--primary);font-weight:700;margin-bottom:0.2rem;">${p.equipmentCode}</div>` : ''}
 <div class="admin-product-name">${p.name}</div>
 ${p.brand ? `<div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.3rem;">${p.brand}</div>` : ''}
 <div class="admin-product-price">
@@ -593,9 +639,15 @@ ${p.oldPrice ? `<span style="text-decoration:line-through;font-size:0.78rem;colo
 ${p.price} د.ع
 </div>
 ${p.badge ? `<span style="background:#fee2e2;color:#dc2626;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:8px;display:inline-block;margin-top:4px;">${p.badge}</span>` : ''}
+<select onchange="setProductStatus(${p.id}, this.value)" style="width:100%;margin-top:0.5rem;padding:0.35rem;border-radius:8px;border:1px solid #e5e7eb;font-family:'Cairo',sans-serif;font-size:0.78rem;">
+<option value="available" ${currentStatus==='available'?'selected':''}>${statusLabels.available}</option>
+<option value="rented" ${currentStatus==='rented'?'selected':''}>${statusLabels.rented}</option>
+<option value="maintenance" ${currentStatus==='maintenance'?'selected':''}>${statusLabels.maintenance}</option>
+</select>
 </div>
 </div>
-`).join('')}</div>`;
+`;
+}).join('')}</div>`;
 }
 
 // الاستماع اللحظي لأي تغيير بالمنتجات - يشتغل من أي جهاز
@@ -611,15 +663,28 @@ function getOrders() {
 return Object.values(ordersCache);
 }
 
+function matchesOrderSearch(o, query) {
+if (!query) return true;
+const q = query.trim().toLowerCase();
+if (!q) return true;
+const id = (o.id || '').toLowerCase();
+const name = (o.customer && o.customer.name || '').toLowerCase();
+const phone = (o.customer && o.customer.phone || '').toLowerCase();
+return id.includes(q) || name.includes(q) || phone.includes(q);
+}
+
 function renderOrders() {
-const orders = getOrders();
+const allOrders = getOrders();
+const searchEl = document.getElementById('orderSearchInput');
+const query = searchEl ? searchEl.value : '';
+const orders = allOrders.filter(o => matchesOrderSearch(o, query));
 const list = document.getElementById('ordersList');
 const count = document.getElementById('ordersCountBadge');
 count.textContent = orders.length;
-const statusLabel = { new:'🔵 جديد', preparing:'🟠 قيد التحضير', delivered:'🟢 تم التوصيل', ready:'🟢 جاهز' };
-const statusColor = { new:'#3b82f6', preparing:'#f97316', delivered:'#10b981', ready:'#10b981' };
+const statusLabel = { new:'🔵 جديد', preparing:'🟠 قيد التحضير', delivered:'🟢 تم التوصيل', ready:'🟢 جاهز', cancelled:'❌ ملغي', returned:'↩️ مرتجع' };
+const statusColor = { new:'#3b82f6', preparing:'#f97316', delivered:'#10b981', ready:'#10b981', cancelled:'#94a3b8', returned:'#94a3b8' };
 if (orders.length === 0) {
-list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📋</span><p>ما في طلبات بعد</p></div>';
+list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📋</span><p>ما فيه طلبات مطابقة</p></div>';
 return;
 }
 list.innerHTML = [...orders].reverse().map(o => `
