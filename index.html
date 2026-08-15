@@ -365,6 +365,11 @@
   <div class="footer-bottom">© 2025 معدّاتي — جميع الحقوق محفوظة</div>
 </footer>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
 <script>
 let cart = [];
 
@@ -451,22 +456,25 @@ function placeOrder() {
     status: 'new'   // new | preparing | ready | delivered
   };
 
-  // حفظ بـ localStorage
-  const orders = JSON.parse(localStorage.getItem('muaddati_orders') || '[]');
-  orders.unshift(order);
-  localStorage.setItem('muaddati_orders', JSON.stringify(orders));
+  // حفظ الطلب في Firebase (يصل فورًا لكل الأجهزة المتصلة، بما فيها الكاشير)
+  db.ref('orders/' + orderId).set(order)
+    .then(() => {
+      // تنظيف
+      clearCart();
+      closeCart();
+      document.getElementById('custName').value = '';
+      document.getElementById('custPhone').value = '';
+      document.getElementById('custAddress').value = '';
+      document.getElementById('custNotes').value = '';
 
-  // تنظيف
-  clearCart();
-  closeCart();
-  document.getElementById('custName').value = '';
-  document.getElementById('custPhone').value = '';
-  document.getElementById('custAddress').value = '';
-  document.getElementById('custNotes').value = '';
-
-  // نافذة النجاح
-  document.getElementById('modalOrderId').textContent = orderId;
-  document.getElementById('orderModal').classList.add('open');
+      // نافذة النجاح
+      document.getElementById('modalOrderId').textContent = orderId;
+      document.getElementById('orderModal').classList.add('open');
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('⚠️ فشل إرسال الطلب، تأكد من الاتصال بالإنترنت');
+    });
 }
 
 function closeModal() { document.getElementById('orderModal').classList.remove('open'); }
@@ -477,9 +485,9 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-function loadAdminProducts() {
+function renderAdminProducts(productsObj) {
   const grid = document.getElementById('adminProductsGrid');
-  const products = JSON.parse(localStorage.getItem('muaddati_products') || '[]');
+  const products = productsObj ? Object.values(productsObj) : [];
   if (products.length === 0) { grid.innerHTML=''; return; }
   grid.innerHTML = products.map(p => `
     <div class="product-card">
@@ -499,8 +507,10 @@ function loadAdminProducts() {
     </div>`).join('');
 }
 
-loadAdminProducts();
-window.addEventListener('storage', loadAdminProducts);
+// الاستماع اللحظي لأي تغيير بالمنتجات (سواء أضافه الأدمن من نفس الجهاز أو جهاز ثاني)
+db.ref('products').on('value', snap => {
+  renderAdminProducts(snap.val());
+});
 </script>
 </body>
 </html>
