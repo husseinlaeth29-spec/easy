@@ -384,6 +384,12 @@ transition: all 0.2s;
 </div>
 </header>
 <div style="max-width:1200px;margin:1.5rem auto 0;padding:0 2rem;">
+<h2 style="font-family:'Tajawal',sans-serif;font-size:1.2rem;font-weight:900;margin-bottom:1rem;">🚨 التنبيهات</h2>
+<div id="alertsContainer" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin-bottom:2rem;">
+<div class="empty-state" style="grid-column:1/-1;"><span class="empty-state-icon">✅</span><p>كل شيء يمام!</p></div>
+</div>
+</div>
+<div style="max-width:1200px;margin:0 auto 0;padding:0 2rem;">
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;" id="reportsGrid">
 <div style="background:white;border-radius:16px;padding:1.2rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
 <div style="font-size:.78rem;color:var(--text-light);margin-bottom:.4rem;">📅 مبيعات اليوم</div>
@@ -474,6 +480,44 @@ transition: all 0.2s;
 </div>
 </div>
 </div>
+<!-- قسم الكوبونات -->
+<div style="max-width:1200px;margin:0 auto 3rem;padding:0 2rem;">
+<h2 style="font-family:'Tajawal',sans-serif;font-size:1.3rem;font-weight:900;display:flex;align-items:center;gap:.6rem;margin-bottom:1.2rem;">
+🎁 الكوبونات
+<span id="couponsCountBadge" style="background:var(--primary);color:white;border-radius:20px;padding:.2rem .8rem;font-size:.85rem;font-weight:700;">0</span>
+</h2>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:2rem;">
+<div style="background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
+<h3 style="font-weight:700;margin-bottom:1rem;">إضافة كوبون جديد</h3>
+<div style="margin-bottom:1rem;">
+<label style="display:block;font-weight:700;font-size:.88rem;margin-bottom:.4rem;">اسم الكوبون</label>
+<input type="text" id="couponName" placeholder="مثال: عيد الفطر" style="width:100%;padding:.6rem .9rem;border:2px solid #e5e7eb;border-radius:10px;font-family:'Cairo',sans-serif;font-size:.9rem;">
+</div>
+<div style="margin-bottom:1rem;">
+<label style="display:block;font-weight:700;font-size:.88rem;margin-bottom:.4rem;">الكود (حروف وأرقام بدون مسافات)</label>
+<input type="text" id="couponCode" placeholder="EID50" style="width:100%;padding:.6rem .9rem;border:2px solid #e5e7eb;border-radius:10px;font-family:'Cairo',sans-serif;text-transform:uppercase;">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem;">
+<div>
+<label style="display:block;font-weight:700;font-size:.88rem;margin-bottom:.4rem;">نوع الخصم</label>
+<select id="couponType" style="width:100%;padding:.6rem .9rem;border:2px solid #e5e7eb;border-radius:10px;font-family:'Cairo',sans-serif;">
+<option value="fixed">مبلغ ثابت (د.ع)</option>
+<option value="percent">نسبة مئوية (%)</option>
+</select>
+</div>
+<div>
+<label style="display:block;font-weight:700;font-size:.88rem;margin-bottom:.4rem;">قيمة الخصم</label>
+<input type="number" id="couponValue" placeholder="50" style="width:100%;padding:.6rem .9rem;border:2px solid #e5e7eb;border-radius:10px;font-family:'Cairo',sans-serif;">
+</div>
+</div>
+<button onclick="addCoupon()" style="width:100%;background:var(--primary);color:white;border:none;border-radius:14px;padding:.8rem;font-family:'Cairo',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:.5rem;">✅ إضافة الكوبون</button>
+<div id="couponSuccessMsg" style="display:none;background:#d1fae5;color:#065f46;border-radius:10px;padding:.8rem 1rem;font-weight:700;font-size:.88rem;text-align:center;">✅ تم إضافة الكوبون!</div>
+</div>
+<div id="couponsList" style="background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);">
+<div class="empty-state"><span class="empty-state-icon">🎁</span><p>ما في كوبونات بعد</p></div>
+</div>
+</div>
+</div>
 <!-- قسم الطلبات -->
 <div style="max-width:1200px;margin:0 auto 3rem;padding:0 2rem;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
@@ -499,6 +543,15 @@ transition: all 0.2s;
 <input type="text" id="customerSearchInput" placeholder="🔍 بحث بالاسم أو الهاتف..." oninput="renderCustomers()" style="width:100%;max-width:420px;padding:.7rem 1.1rem;border-radius:12px;border:2px solid #e5e7eb;background:white;font-family:'Cairo',sans-serif;font-size:.9rem;margin-bottom:1.2rem;">
 <div id="customersList">
 <div class="empty-state"><span class="empty-state-icon">👤</span><p>ما في عملاء بعد</p></div>
+</div>
+</div>
+<!-- قسم أكثر المعدات طلباً -->
+<div style="max-width:1200px;margin:0 auto 3rem;padding:0 2rem;">
+<h2 style="font-family:'Tajawal',sans-serif;font-size:1.3rem;font-weight:900;display:flex;align-items:center;gap:.6rem;margin-bottom:1.2rem;">
+🔥 أكثر المعدات طلباً
+</h2>
+<div id="topProductsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+<div class="empty-state"><span class="empty-state-icon">📦</span><p>ما في طلبات بعد</p></div>
 </div>
 </div>
 </div><!-- /#adminContent -->
@@ -757,6 +810,21 @@ ${o.items.map(i => `<span style="background:#f0ebff;color:var(--primary);border-
 <span style="font-size:.75rem;color:var(--text-light);">🕐 ${o.time || ''}</span>
 <strong style="color:var(--primary);font-family:'Tajawal',sans-serif;">${o.total.toLocaleString()} د.ع</strong>
 </div>
+${o.internal_notes ? `<div style="background:#fffbeb;border-right:3px solid #f59e0b;padding:.5rem .8rem;border-radius:8px;margin-top:.5rem;font-size:.8rem;color:#92400e;">📝 ${o.internal_notes}</div>` : ''}
+<div style="margin-top:.5rem;">
+<textarea id="notes-${o.id}" placeholder="ملاحظة داخلية..." style="width:100%;padding:.4rem .7rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.8rem;height:50px;resize:none;">${o.internal_notes||''}</textarea>
+<button onclick="saveOrderNotes('${o.id}')" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;margin-top:.3rem;">💾 حفظ الملاحظة</button>
+</div>
+${o.status === 'delivered' ? `
+<div style="margin-top:.8rem;padding-top:.8rem;border-top:1px dashed #e5e7eb;">
+<div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:.5rem;">⭐ تقييم الزبون</div>
+<div style="display:flex;gap:.3rem;margin-bottom:.5rem;font-size:1.2rem;cursor:pointer;" id="rating-${o.id}">
+${[1,2,3,4,5].map(i => `<span onclick="setRating('${o.id}',${i})" style="opacity:${(o.rating||0)>=i?'1':'0.3'};transition:all .2s;">⭐</span>`).join('')}
+</div>
+<input type="text" id="review-${o.id}" value="${o.review||''}" placeholder="ملاحظة سريعة..." style="width:100%;padding:.4rem .7rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.82rem;margin-bottom:.4rem;">
+<button onclick="saveReview('${o.id}')" style="background:var(--green);color:white;border:none;border-radius:8px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;">💾 حفظ التقييم</button>
+</div>
+` : ''}
 ${o.archivedFromCashier ? '<div style="font-size:.72rem;color:#ef4444;margin-top:.3rem;">⚠️ محذوف من الكاشير - محفوظ هنا</div>' : ''}
 </div>
 `).join('');
@@ -768,9 +836,106 @@ ordersCache = snap.val() || {};
 renderOrders();
 renderCustomers();
 renderReports();
+renderTopProducts();
 });
 
 /* ===================== التقارير ===================== */
+/* ===================== الكوبونات ===================== */
+let couponsCache = {};
+
+db.ref('coupons').on('value', snap => {
+  couponsCache = snap.val() || {};
+  renderCouponsList();
+});
+
+function addCoupon() {
+  const name = document.getElementById('couponName').value.trim();
+  const code = document.getElementById('couponCode').value.trim().toUpperCase();
+  const type = document.getElementById('couponType').value;
+  const value = parseInt(document.getElementById('couponValue').value);
+  
+  if (!name || !code || !value) {
+    alert('يرجى ملء كل الحقول');
+    return;
+  }
+  
+  const coupon = { id: Date.now(), name, code, type, value, active: true, createdAt: new Date().toLocaleString('ar-IQ') };
+  db.ref('coupons/' + coupon.id).set(coupon);
+  
+  document.getElementById('couponName').value = '';
+  document.getElementById('couponCode').value = '';
+  document.getElementById('couponValue').value = '';
+  
+  const msg = document.getElementById('couponSuccessMsg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2500);
+}
+
+function toggleCoupon(id) {
+  const coupon = Object.values(couponsCache).find(c => c.id == id);
+  if (coupon) db.ref('coupons/' + id).update({ active: !coupon.active });
+}
+
+function deleteCoupon(id) {
+  if (confirm('تأكيد حذف الكوبون؟')) {
+    db.ref('coupons/' + id).remove();
+  }
+}
+
+function renderCouponsList() {
+  const coupons = Object.values(couponsCache).sort((a,b) => (b.id||0)-(a.id||0));
+  const list = document.getElementById('couponsList');
+  const count = document.getElementById('couponsCountBadge');
+  if (count) count.textContent = coupons.length;
+  
+  if (coupons.length === 0) {
+    list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🎁</span><p>ما في كوبونات بعد</p></div>';
+    return;
+  }
+  
+  list.innerHTML = coupons.map(c => `
+    <div style="background:white;border-radius:14px;padding:1rem;margin-bottom:.8rem;border-right:4px solid ${c.active?'var(--green)':'#d1d5db'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+        <div>
+          <div style="font-weight:700;font-size:.95rem;color:var(--text);">${c.name}</div>
+          <div style="font-size:.82rem;color:var(--text-light);font-family:monospace;margin-top:.2rem;">${c.code}</div>
+        </div>
+        <span style="background:${c.active?'#d1fae5':'#fee2e2'};color:${c.active?'#065f46':'#991b1b'};padding:.3rem .8rem;border-radius:20px;font-size:.75rem;font-weight:700;">${c.active?'🟢 نشط':'🔴 معطل'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.8rem;">
+        <div style="font-size:.85rem;font-weight:700;color:var(--primary);">${c.type==='fixed'?c.value+' د.ع':c.value+'%'}</div>
+        <div style="display:flex;gap:.4rem;">
+          <button onclick="toggleCoupon(${c.id})" style="background:${c.active?'#fee2e2':'#d1fae5'};color:${c.active?'#991b1b':'#065f46'};border:none;border-radius:8px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;">${c.active?'تعطيل':'تفعيل'}</button>
+          <button onclick="deleteCoupon(${c.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:8px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;">حذف</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function saveOrderNotes(orderId) {
+  const notes = document.getElementById(`notes-${orderId}`)?.value || '';
+  db.ref('orders/' + orderId).update({ internal_notes: notes });
+  alert('تم حفظ الملاحظة ✅');
+}
+
+function setRating(orderId, rating) {
+  const stars = document.querySelectorAll(`#rating-${orderId} span`);
+  stars.forEach((s, i) => s.style.opacity = i < rating ? '1' : '0.3');
+  document.currentRating = rating;
+}
+
+function saveReview(orderId) {
+  const rating = document.currentRating || 0;
+  const review = document.getElementById(`review-${orderId}`)?.value || '';
+  if (rating === 0) {
+    alert('يرجى اختيار التقييم');
+    return;
+  }
+  db.ref('orders/' + orderId).update({ rating, review });
+  alert('تم حفظ التقييم ✅');
+}
+
 function renderReports() {
 const orders = getOrders().filter(o => !o.archivedFromCashier && o.status !== 'cancelled');
 const now = Date.now();
@@ -792,6 +957,39 @@ document.getElementById('reportWeekCount').textContent = weekOrders.length + ' �
 document.getElementById('reportMonthTotal').textContent = sum(monthOrders).toLocaleString() + ' د.ع';
 document.getElementById('reportMonthCount').textContent = monthOrders.length + ' طلب';
 document.getElementById('reportAvgOrder').textContent = (monthOrders.length ? Math.round(sum(monthOrders)/monthOrders.length) : 0).toLocaleString() + ' د.ع';
+}
+
+function renderTopProducts() {
+const orders = getOrders().filter(o => !o.archivedFromCashier && o.items);
+const productCount = {};
+orders.forEach(o => {
+  o.items.forEach(item => {
+    const key = item.name;
+    productCount[key] = (productCount[key] || 0) + item.qty;
+  });
+});
+
+const topProducts = Object.entries(productCount)
+  .map(([name, qty]) => ({ name, qty }))
+  .sort((a, b) => b.qty - a.qty)
+  .slice(0, 5);
+
+const list = document.getElementById('topProductsList');
+if (topProducts.length === 0) {
+  list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📦</span><p>ما في طلبات بعد</p></div>';
+  return;
+}
+
+list.innerHTML = topProducts.map((p, i) => `
+  <div style="background:white;border-radius:14px;padding:1rem;box-shadow:0 2px 12px rgba(108,63,197,0.08);border-top:4px solid ${['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ef4444'][i]};">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+      <span style="background:${['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ef4444'][i]};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;">${i+1}</span>
+      <div style="font-weight:700;font-size:.9rem;color:var(--text);">${p.name}</div>
+    </div>
+    <div style="font-family:'Tajawal',sans-serif;font-weight:900;font-size:1.2rem;color:var(--primary);">${p.qty} 🔄</div>
+    <div style="font-size:.72rem;color:var(--text-light);margin-top:.3rem;">مرات تأجير</div>
+  </div>
+`).join('');
 }
 
 /* ===================== العملاء (مجمّعة من الطلبات) ===================== */
