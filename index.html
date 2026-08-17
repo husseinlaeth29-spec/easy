@@ -203,8 +203,15 @@
         <textarea id="custNotes" placeholder="ملاحظات إضافية (اختياري)"></textarea>
       </div>
     </div>
+    <div style="padding:1rem;border-top:2px solid var(--bg);">
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+        <input type="text" id="couponCode" placeholder="أدخل كود خصم (اختياري)" style="flex:1;padding:.6rem .9rem;border:2px solid #e5e7eb;border-radius:10px;font-family:'Cairo',sans-serif;font-size:.85rem;direction:ltr;text-transform:uppercase;">
+        <button onclick="applyCoupon()" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:.6rem 1rem;font-family:'Cairo',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;white-space:nowrap;">تطبيق ✓</button>
+      </div>
+      <div id="couponInfo"></div>
+    </div>
     <div class="cart-footer">
-      <div class="cart-total">
+      <div class="cart-total" id="priceBreakdown">
         <span>المجموع الكلي:</span>
         <span class="cart-total-num" id="cartTotal">0 د.ع</span>
       </div>
@@ -377,6 +384,14 @@
 
 <script>
 let cart = [];
+let couponsCache = {};
+let appliedCoupon = null;
+let discountAmount = 0;
+
+// قراءة الكوبونات من Firebase
+db.ref('coupons').on('value', snap => {
+  couponsCache = snap.val() || {};
+});
 
 function openCart() {
   document.getElementById('cartDrawer').classList.add('open');
@@ -398,6 +413,45 @@ function addToCart(btn, name, price, icon, image) {
   setTimeout(() => { btn.textContent = '+ أضف'; btn.classList.remove('added'); }, 1500);
   updateCartCount();
   showToast('✅ تم إضافة ' + name);
+}
+
+function applyCoupon() {
+  const code = document.getElementById('couponCode').value.trim().toUpperCase();
+  const info = document.getElementById('couponInfo');
+  
+  if (!code) {
+    appliedCoupon = null;
+    discountAmount = 0;
+    info.innerHTML = '';
+    updateCartCount();
+    renderCart();
+    return;
+  }
+  
+  const coupon = Object.values(couponsCache).find(c => c.code && c.code.toUpperCase() === code && c.active);
+  
+  if (!coupon) {
+    info.innerHTML = '<div style="color:#ef4444;font-size:.8rem;font-weight:700;">❌ كود غير صحيح أو منتهي الصلاحية</div>';
+    appliedCoupon = null;
+    discountAmount = 0;
+    updateCartCount();
+    renderCart();
+    return;
+  }
+  
+  appliedCoupon = coupon;
+  const subtotal = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  
+  if (coupon.type === 'fixed') {
+    discountAmount = coupon.value;
+  } else {
+    discountAmount = Math.floor(subtotal * coupon.value / 100);
+  }
+  
+  const label = coupon.type === 'fixed' ? (coupon.value + ' د.ع') : (coupon.value + '%');
+  info.innerHTML = `<div style="color:var(--green);font-size:.8rem;font-weight:700;">✅ تم تطبيق الخصم: ${label} (${coupon.name})</div>`;
+  updateCartCount();
+  renderCart();
 }
 
 function updateCartCount() {
@@ -427,7 +481,25 @@ function renderCart() {
         </div>
       </div>
     </div>`).join('');
-  document.getElementById('cartTotal').textContent = cart.reduce((s,i)=>s+i.price*i.qty,0).toLocaleString() + ' د.ع';
+  const subtotal = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const final = Math.max(0, subtotal - discountAmount);
+  
+  let breakdown = `<span>المجموع الكلي:</span><span class="cart-total-num">${final.toLocaleString()} د.ع</span>`;
+  if (discountAmount > 0) {
+    breakdown = `<div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.85rem;">
+      <span>السعر الأصلي:</span>
+      <span style="text-decoration:line-through;color:var(--text-light);">${subtotal.toLocaleString()} د.ع</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.85rem;color:var(--green);">
+      <span>الخصم:</span>
+      <span>-${discountAmount.toLocaleString()} د.ع</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-weight:900;">
+      <span>الإجمالي النهائي:</span>
+      <span class="cart-total-num">${final.toLocaleString()} د.ع</span>
+    </div>`;
+  }
+  document.getElementById('priceBreakdown').innerHTML = breakdown;
 }
 
 function changeQty(idx,d) {
@@ -437,7 +509,15 @@ function changeQty(idx,d) {
 }
 
 function removeItem(idx) { cart.splice(idx,1); updateCartCount(); renderCart(); }
-function clearCart() { cart=[]; updateCartCount(); renderCart(); }
+function clearCart() { 
+  cart = []; 
+  appliedCoupon = null;
+  discountAmount = 0;
+  document.getElementById('couponCode').value = '';
+  document.getElementById('couponInfo').innerHTML = '';
+  updateCartCount(); 
+  renderCart(); 
+}
 
 let storeWhatsappNumber = '';
 db.ref('settings/storeWhatsapp').on('value', snap => {
@@ -454,7 +534,8 @@ function placeOrder() {
   if (cart.length === 0) { showToast('⚠️ السلة فارغة!'); return; }
 
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
-  const total   = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const subtotal = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const total = Math.max(0, subtotal - discountAmount);
 
   const order = {
     id: orderId,
@@ -462,6 +543,9 @@ function placeOrder() {
     timestamp: Date.now(),
     customer: { name, phone, address, notes },
     items: JSON.parse(JSON.stringify(cart)),
+    subtotal,
+    discount: discountAmount,
+    coupon: appliedCoupon ? appliedCoupon.code : null,
     total,
     status: 'new'   // new | preparing | ready | delivered
   };
