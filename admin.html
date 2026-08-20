@@ -649,8 +649,8 @@ return Object.values(productsCache);
 }
 
 function addProduct() {
-const name = document.getElementById('prodName').value.trim();
-const price = document.getElementById('prodPrice').value.trim();
+const name = sanitizeInput(document.getElementById('prodName').value);
+const price = sanitizeInput(document.getElementById('prodPrice').value);
 if (!name || !price) {
 alert('يرجى كتابة اسم المنتج والسعر على الأقل!');
 return;
@@ -761,6 +761,18 @@ renderProducts();
 });
 
 /* ===================== الطلبات (Firebase) ===================== */
+// ============ تعقيم البيانات من XSS ============
+function sanitizeHTML(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function sanitizeInput(input) {
+  return sanitizeHTML(String(input).trim());
+}
+
 let ordersCache = {};
 
 function getOrders() {
@@ -810,6 +822,12 @@ ${o.items.map(i => `<span style="background:#f0ebff;color:var(--primary);border-
 <span style="font-size:.75rem;color:var(--text-light);">🕐 ${o.time || ''}</span>
 <strong style="color:var(--primary);font-family:'Tajawal',sans-serif;">${o.total.toLocaleString()} د.ع</strong>
 </div>
+${o.pointsUsed || o.earnedPoints ? `
+<div style="background:#fef3c7;color:#92400e;padding:.5rem;border-radius:8px;margin-top:.5rem;font-size:.8rem;font-weight:700;">
+${o.pointsUsed ? `<div>استخدم: ${o.pointsUsed} نقطة (خصم ${Math.floor(o.pointsUsed/500)*25} د.ع)</div>` : ''}
+${o.earnedPoints ? `<div>كسب: ${o.earnedPoints} نقطة ⭐</div>` : ''}
+</div>
+` : ''}
 ${o.internal_notes ? `<div style="background:#fffbeb;border-right:3px solid #f59e0b;padding:.5rem .8rem;border-radius:8px;margin-top:.5rem;font-size:.8rem;color:#92400e;">📝 ${o.internal_notes}</div>` : ''}
 <div style="margin-top:.5rem;">
 <textarea id="notes-${o.id}" placeholder="ملاحظة داخلية..." style="width:100%;padding:.4rem .7rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.8rem;height:50px;resize:none;">${o.internal_notes||''}</textarea>
@@ -837,15 +855,16 @@ renderOrders();
 renderCustomers();
 renderReports();
 renderTopProducts();
+renderAlerts();
 });
 
-/* ===================== التقارير ===================== */
 /* ===================== الكوبونات ===================== */
 let couponsCache = {};
 
 db.ref('coupons').on('value', snap => {
   couponsCache = snap.val() || {};
   renderCouponsList();
+  renderAlerts();
 });
 
 function addCoupon() {
@@ -914,26 +933,86 @@ function renderCouponsList() {
 }
 
 function saveOrderNotes(orderId) {
-  const notes = document.getElementById(`notes-${orderId}`)?.value || '';
-  db.ref('orders/' + orderId).update({ internal_notes: notes });
-  alert('تم حفظ الملاحظة ✅');
+  const notes = sanitizeInput(document.getElementById(`notes-${orderId}`)?.value || '');
+  if (notes.length > 500) {
+    alert('الملاحظة طويلة جداً (أقصى 500 حرف)');
+    return;
+  }
+  db.ref('orders/' + orderId).update({ internal_notes: notes })
+    .then(() => alert('تم حفظ الملاحظة ✅'))
+    .catch(err => {
+      console.error('خطأ:', err);
+      alert('❌ خطأ - حاول مرة أخرى');
+    });
 }
 
+let currentRatings = {}; // تخزين التقييم لكل orderId
+
 function setRating(orderId, rating) {
+  currentRatings[orderId] = rating;
   const stars = document.querySelectorAll(`#rating-${orderId} span`);
   stars.forEach((s, i) => s.style.opacity = i < rating ? '1' : '0.3');
-  document.currentRating = rating;
 }
 
 function saveReview(orderId) {
-  const rating = document.currentRating || 0;
-  const review = document.getElementById(`review-${orderId}`)?.value || '';
+  const rating = currentRatings[orderId] || 0;
+  const review = sanitizeInput(document.getElementById(`review-${orderId}`)?.value || '');
   if (rating === 0) {
     alert('يرجى اختيار التقييم');
     return;
   }
-  db.ref('orders/' + orderId).update({ rating, review });
-  alert('تم حفظ التقييم ✅');
+  if (review.length > 200) {
+    alert('التعليق طويل جداً (أقصى 200 حرف)');
+    return;
+  }
+  db.ref('orders/' + orderId).update({ rating, review })
+    .then(() => {
+      delete currentRatings[orderId];
+      alert('تم حفظ التقييم ✅');
+    })
+    .catch(err => {
+      console.error('خطأ:', err);
+      alert('❌ خطأ - حاول مرة أخرى');
+    });
+}
+
+function renderAlerts() {
+  const orders = getOrders();
+  const coupons = Object.values(couponsCache);
+  const alerts = [];
+  
+  // تنبيه: معدات غير متوفرة
+  const products = Object.values(productsCache || {});
+  const unavailable = products.filter(p => p.status !== 'available');
+  if (unavailable.length > 0) {
+    alerts.push({ type: 'warning', icon: '🟠', title: 'معدات غير متوفرة', desc: unavailable.length + ' معدة بالصيانة أو مؤجرة' });
+  }
+  
+  // تنبيه: طلبات معلقة (أكثر من ساعة)
+  const pendingOrders = orders.filter(o => o.status === 'new' && (Date.now() - (o.timestamp||0)) > 3600000);
+  if (pendingOrders.length > 0) {
+    alerts.push({ type: 'urgent', icon: '🔴', title: 'طلبات معلقة', desc: pendingOrders.length + ' طلب لم يتم تجهيزه' });
+  }
+  
+  // تنبيه: كوبونات معطلة
+  const inactiveCoupons = coupons.filter(c => !c.active);
+  if (inactiveCoupons.length > 0) {
+    alerts.push({ type: 'info', icon: '🎁', title: 'كوبونات معطلة', desc: inactiveCoupons.length + ' كوبون معطل' });
+  }
+  
+  const container = document.getElementById('alertsContainer');
+  if (alerts.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><span class="empty-state-icon">✅</span><p>كل شيء يمام!</p></div>';
+    return;
+  }
+  
+  container.innerHTML = alerts.map(a => `
+    <div style="background:${a.type==='urgent'?'#fee2e2':a.type==='warning'?'#fef3c7':'#dbeafe'};border-radius:12px;padding:1rem;border-right:4px solid ${a.type==='urgent'?'#ef4444':a.type==='warning'?'#f59e0b':'#3b82f6'};">
+      <div style="font-size:1.2rem;margin-bottom:.3rem;">${a.icon}</div>
+      <div style="font-weight:700;font-size:.9rem;color:var(--text);">${a.title}</div>
+      <div style="font-size:.8rem;color:var(--text-light);margin-top:.3rem;">${a.desc}</div>
+    </div>
+  `).join('');
 }
 
 function renderReports() {
@@ -994,16 +1073,17 @@ list.innerHTML = topProducts.map((p, i) => `
 
 /* ===================== العملاء (مجمّعة من الطلبات) ===================== */
 function buildCustomersFromOrders() {
-const orders = getOrders().filter(o => !o.archivedFromCashier && o.customer && o.customer.phone);
+const orders = getOrders().filter(o => !o.archivedFromCashier && o.customer && o.customer.phone && o.status === 'delivered');
 const map = {};
 orders.forEach(o => {
 const phone = o.customer.phone.trim();
 if (!map[phone]) {
-map[phone] = { phone, name: o.customer.name, address: o.customer.address, orders: [], total: 0 };
+map[phone] = { phone, name: o.customer.name, address: o.customer.address, orders: [], total: 0, points: 0 };
 }
 map[phone].orders.push(o);
 map[phone].total += (o.total || 0);
-map[phone].name = o.customer.name || map[phone].name; // آخر اسم مستخدم
+map[phone].points += (o.earnedPoints || 0) - (o.pointsUsed || 0); // النقاط المكتسبة ناقص المستخدمة
+map[phone].name = o.customer.name || map[phone].name;
 });
 return Object.values(map).sort((a,b) => b.total - a.total);
 }
@@ -1053,6 +1133,7 @@ ${c.address ? `<div style="font-size:.78rem;color:var(--text-light);margin-botto
 <span style="font-size:.78rem;color:var(--text-light);">${c.orders.length} طلب</span>
 <strong style="color:var(--primary);font-family:'Tajawal',sans-serif;">${c.total.toLocaleString()} د.ع</strong>
 </div>
+<div style="background:#fef3c7;color:#92400e;padding:.5rem;border-radius:8px;margin-top:.5rem;font-size:.8rem;font-weight:700;">⭐ النقاط: ${c.points || 0} نقطة</div>
 ${lastOrder ? `<div style="font-size:.72rem;color:var(--text-light);margin-top:.3rem;">🕐 آخر طلب: ${lastOrder.time || ''}</div>` : ''}
 </div>
 `;
