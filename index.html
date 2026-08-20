@@ -405,8 +405,17 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="translations.js"></script>
 
 <script>
+// ============ متغيرات عامة ============
+let cart = [];
+let couponsCache = {};
+let appliedCoupon = null;
+let discountAmount = 0;
+let userPoints = 0;
+let usedPoints = 0;
+
 // ============ Dark Mode ============
 function toggleDarkMode() {
   const isDark = document.documentElement.classList.toggle('dark-mode');
@@ -423,7 +432,7 @@ function updateDarkModeIcon() {
   }
 }
 
-// حمل Dark Mode من localStorage عند تحميل الصفحة
+// حمّل Dark Mode من localStorage عند تحميل الصفحة
 window.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('darkMode') === 'true') {
     document.documentElement.classList.add('dark-mode');
@@ -736,8 +745,6 @@ function placeOrder() {
     .catch(err => {
       console.error('خطأ في حفظ الطلب:', err);
       showToast('❌ حدث خطأ - حاول مرة أخرى لاحقاً', '#ef4444');
-    });
-      showToast('⚠️ فشل إرسال الطلب، تأكد من الاتصال بالإنترنت');
     });
 }
 
