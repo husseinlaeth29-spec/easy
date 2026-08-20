@@ -272,6 +272,10 @@ if (sessionStorage.getItem('muaddati_cashier_logged') === '1') {
 }
 
 // كاش محلي بالذاكرة فقط، يتحدث تلقائيًا من Firebase
+// FIX: هذول المتغيرين كانوا مستخدمين بدون تعريف (undeclared) وهذا كان يسبب
+// ReferenceError داخل db.ref('orders').on('value', ...) ويوقف تحديث اللوحة بالكامل.
+let ordersCache = {};
+let isFirstLoad = true;
 let lastNotifiedOrderId = null;
 let previousNewCount = 0;
 
