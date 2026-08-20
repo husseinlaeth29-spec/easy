@@ -72,6 +72,7 @@
 
   .board { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; padding:1.5rem; min-height:calc(100vh - 65px); }
   @media(max-width:1300px) { .board { grid-template-columns:repeat(2,1fr); } }
+  @keyframes pulse { 0%, 100% { transform:scale(1); } 50% { transform:scale(1.01); } }
 
   .column { background:var(--card); border-radius:16px; border:1px solid var(--border); display:flex; flex-direction:column; max-height:calc(100vh - 100px); }
   .col-header { padding:1rem 1.2rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; border-radius:16px 16px 0 0; flex-shrink:0; }
@@ -271,9 +272,36 @@ if (sessionStorage.getItem('muaddati_cashier_logged') === '1') {
 }
 
 // كاش محلي بالذاكرة فقط، يتحدث تلقائيًا من Firebase
-let ordersCache = {};
-let isFirstLoad = true;
+let lastNotifiedOrderId = null;
 let previousNewCount = 0;
+
+function playNotificationSound() {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  oscillator.frequency.value = 800;
+  oscillator.type = 'sine';
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function showNewOrderAlert(orderId, customerName) {
+  if (lastNotifiedOrderId === orderId) return;
+  lastNotifiedOrderId = orderId;
+  
+  playNotificationSound();
+  showNotif(`🎉 طلب جديد من ${customerName}!`, '#10b981');
+  
+  // تأثير بصري - ترجيج الصفحة
+  document.body.style.animation = 'pulse 0.3s ease-in-out';
+  setTimeout(() => {
+    document.body.style.animation = '';
+  }, 300);
+}
 
 function getOrders() {
   return Object.values(ordersCache);
@@ -433,6 +461,14 @@ function renderBoard() {
   const prepOrders = orders.filter(o => o.status === 'preparing' || o.status === 'ready');
   const doneOrders = orders.filter(o => o.status === 'delivered');
   const cancelledOrders = orders.filter(o => o.status === 'cancelled' || o.status === 'returned');
+
+  // تنبيه صوتي للطلبات الجديدة
+  if (newOrders.length > previousNewCount && isFirstLoad === false) {
+    const newOrder = newOrders[newOrders.length - 1];
+    showNewOrderAlert(newOrder.id, newOrder.customer?.name || 'زبون جديد');
+  }
+  previousNewCount = newOrders.length;
+  if (isFirstLoad) isFirstLoad = false;
 
   document.getElementById('countNew').textContent  = newOrders.length;
   document.getElementById('countPrep').textContent = prepOrders.length;
